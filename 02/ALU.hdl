@@ -44,10 +44,29 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
-    // You're advised to work on the ALU chip in two steps:
-    // - First, without handling status outputs (ALU-nostat)
-    // - Then, adding the missing functionality for the "full" chip (ALU). 
-    // You only need to submit the "full" ALU, no need to submit the partial
-    // implementation (ALU-nostat).
-    // Put your code here:
+    // z flags
+    Mux16(a=x, b=false, sel=zx, out=x-post-1);
+    Mux16(a=y, b=false, sel=zy, out=y-post-1);
+    Not16(in=x-post-1, out=n-x);
+    Not16(in=y-post-1, out=n-y);
+    // n input flags
+    Mux16(a=x-post-1, b=n-x, sel=nx, out=x-post-2);
+    Mux16(a=y-post-1, b=n-y, sel=ny, out=y-post-2);
+    Add16(a=x-post-2, b=y-post-2, out=x-plus-y);
+    And16(a=x-post-2, b=y-post-2, out=x-and-y);
+    // function flag
+    Mux16(a=x-and-y, b=x-plus-y, sel=f, out=pre-out);
+    Not16(in=pre-out, out=n-pre-out);
+    // n output flag + ng
+    Mux16(a=pre-out, b=n-pre-out, sel=no, out[15]=ng-presplit, out[0..14]=final-out);
+
+    // Splitting MSB for multiple uses
+    Splitter2Way(in=ng-presplit, out[0]=ng, out[1]=tmp);
+
+    // zr
+    Or16Way(in[15]=tmp, in[0..14]=final-out, out=n-zr);
+    Not(in=n-zr, out=zr);
+
+    // output
+    And16(a[15]=tmp, a[0..14]=final-out, b=true, out=out);
 }
