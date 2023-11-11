@@ -58,15 +58,9 @@ CHIP ALU {
     Mux16(a=x-and-y, b=x-plus-y, sel=f, out=pre-out);
     Not16(in=pre-out, out=n-pre-out);
     // n output flag + ng
-    Mux16(a=pre-out, b=n-pre-out, sel=no, out[15]=tmp, out[0..14]=final-out);
-
-    // Splitting MSB for multiple uses
-    And(a=tmp, b=true, out=ng);
+    Mux16(a=pre-out, b=n-pre-out, sel=no, out=out, out[15]=ng, out=out1);
 
     // zr
-    Or16Way(in[15]=tmp, in[0..14]=final-out, out=n-zr);
+    Or16Way(in=out1, out=n-zr);
     Not(in=n-zr, out=zr);
-
-    // output
-    And16(a[15]=tmp, a[0..14]=final-out, b=true, out=out);
 }
