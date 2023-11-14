@@ -36,3 +36,64 @@
 //   interactively by pressing and releasing some keyboard keys
 
 // Put your code here.
+
+// Keyboard loop - loop until key is pressed
+(KBDEMPTYLOOP)
+@KBD
+D=M
+@KBDEMPTYLOOP
+D;JEQ
+
+// fill screen with black
+@SCREEN
+D=A
+@i
+M=D // i=SCREEN
+
+(BLACKLOOP)
+
+@i
+D=M
+A=D
+M=-1 // set 16 bits to 1 from addr i
+
+@i
+M=M+1
+D=M
+@KBD
+D=A-D
+@BLACKLOOP
+D;JGT
+
+
+// Keyboard loop - loop until no key is pressed
+(KBDFULLLOOP)
+@KBD
+D=M
+@KBDFULLLOOP
+D;JNE
+
+// fill screen with black
+@SCREEN
+D=A
+@i
+M=D // i = SCREEN
+
+
+(WHITELOOP)
+
+@i
+D=M
+A=D
+M=0 // set 16 bits to 0 from addr i
+
+@i
+M=M+1
+D=M
+@KBD
+D=A-D
+@WHITELOOP
+D;JGT
+
+@KBDEMPTYLOOP
+0;JMP
