@@ -31,6 +31,8 @@ D;JEQ // goto final steps if 0
 D=M // D=RAM[1]
 @ELSE
 D;JEQ // goto final steps if 0
+@count
+M=D
 
 
 @R0
@@ -40,11 +42,11 @@ M=D // tmp=RAM[0]
 
 
 (LOOP)
-@R1
+@count
 M=M-1
 D=M // D=RAM[1]
 @ELSE
-D;JEQ // if RAM[1]==0 goto ELSE
+D;JEQ // if count==0 goto ELSE
 
 @tmp
 D=M // D=tmp
