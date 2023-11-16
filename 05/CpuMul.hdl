@@ -38,5 +38,35 @@ CHIP CpuMul {
         pc[15];          // address of next instruction
     
     PARTS:
-    // Put your code here:
+    // instruction flags
+    Or16(a=instruction, b[0..15]=false, out[0]=jump-gt, out[1]=jump-eq, out[2]=jump-lt,
+        out[3]=dest-m, out[4]=dest-d, out[5]=dest-a,
+        out[6..11]=alu-flags, out[12]=use-m, out[15]=c-or-shift-type);
+    Not(in=instruction[15], out=a-type);
+    DMux(in=instruction[15], sel=instruction[14], a=shift-type, b=c-type);
+    
+    Mux16(a=a-value, b=inM, sel=use-m, out=alu-operand-value);
+
+    // jump
+    And(a=zr, b=jump-eq, out=jump1);
+    And(a=ng, b=jump-lt, out=jump2);
+    Or(a=zr, b=ng, out=not-pos);
+    Not(in=not-pos, out=pos);
+    And(a=pos, b=jump-gt, out=jump3);
+    Or8Way(in[0]=jump1, in[1]=jump2, in[2]=jump3, in[3..7]=false, out=jump4);
+    And(a=jump4, b=c-or-shift-type, out=jump);
+    
+    // enable write to A,D,M
+    Mux(a=true, b=dest-a, sel=c-or-shift-type, out=a-write);
+    And(a=dest-m, b=c-or-shift-type, out=writeM);
+    And(a=dest-d, b=c-or-shift-type, out=write-d);
+
+    // A register
+    Mux16(a=instruction, b=alu-out, sel=c-or-shift-type, out=a-in);
+    ARegister(in=a-in, load=a-write, out=a-value, out[0..14]=addressM);
+    // D register
+    DRegister(in=alu-out, load=write-d, out=d-value);
+    ExtendAlu(x=d-value, y=alu-operand-value, instruction[0..5]=alu-flags, instruction[8]=c-type, out=alu-out, out=outM, zr=zr, ng=ng);
+    // if reset == load == false, always inc
+    PC(in=a-value, load=jump, inc=true, reset=reset, out[0..14]=pc);
 }
