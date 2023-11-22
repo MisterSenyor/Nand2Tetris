@@ -27,7 +27,7 @@ class Parser:
         for line in input_lines:
             if "//" in line:
                 line = line[:line.index("//")]
-            line = line.replace(" ", "")
+            line = "".join(line.split())  # remove all whitespaces
             if line != "":
                 self.lines.append(line)
         

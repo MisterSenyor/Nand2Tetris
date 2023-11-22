@@ -62,7 +62,7 @@ class Code:
         }
         a = int("M" in mnemonic)
         mnemonic = mnemonic.replace("M", "A")
-        return a + transform[mnemonic]
+        return str(a) + transform[mnemonic]
             
 
     @staticmethod
@@ -83,5 +83,18 @@ class Code:
             "JNE": "101",
             "JLE": "110",
             "JMP": "111",
+        }
+        return transform[mnemonic]
+    
+
+    @staticmethod
+    def shift(mnemonic: str) -> str:
+        transform = {
+            "A<<": "1010100000",
+            "D<<": "1010110000",
+            "M<<": "1011100000",
+            "A>>": "1010000000",
+            "D>>": "1010010000",
+            "M>>": "1011000000",
         }
         return transform[mnemonic]

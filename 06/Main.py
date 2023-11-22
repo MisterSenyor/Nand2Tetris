@@ -75,10 +75,13 @@ def assemble_file(
         
         elif command_type == "C_COMMAND":
             dest = Code.dest(parser.dest())
-            comp = Code.comp(parser.comp())
             jump = Code.jump(parser.jump())
-            
-            bin_lines.append("111" + comp + dest + jump)
+            if '<<' in parser.line or '>>' in parser.line:
+                shift = Code.shift(parser.comp())
+                bin_lines.append(shift + dest + jump)
+            else:
+                comp = Code.comp(parser.comp())
+                bin_lines.append("111" + comp + dest + jump)
         
         
     # Write output
