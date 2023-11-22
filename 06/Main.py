@@ -26,7 +26,36 @@ def assemble_file(
     # parser = Parser(input_file)
     # Note that you can write to output_file like so:
     # output_file.write("Hello world! \n")
-    pass
+    
+    file = _
+    
+    for line in file:
+        # In case of A instruction
+        if line[0] == "@":
+            val = "{0:b}".format(int(line[1:])).zfill(15)
+            bin = "0" + val
+        
+        else:
+        # In case of C instruction
+            line = line.split("=")
+            if len(line) == 1:
+                dest = ""
+            else:
+                dest = line[0]
+                line = [line[1]]
+            
+            dest = Code.dest(dest)
+            
+            line = line.split(";")
+            comp = Code.comp(line[0])
+            jump = Code.jump(line[1] if len(line) == 1 else "")
+            
+            bin = "111" + comp + dest + jump
+            # TODO - make sure that file is open in append mode and that this isn't overriding the lines before
+            output_file.write(bin + "\n")
+            
+    
+            
 
 
 if "__main__" == __name__:
