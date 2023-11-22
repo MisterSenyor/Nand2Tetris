@@ -27,33 +27,63 @@ def assemble_file(
     # Note that you can write to output_file like so:
     # output_file.write("Hello world! \n")
     
-    file = _
+    parser = Parser(input_file)
+    table = SymbolTable()
     
-    for line in file:
-        # In case of A instruction
-        if line[0] == "@":
-            val = "{0:b}".format(int(line[1:])).zfill(15)
-            bin = "0" + val
+    # First pass
+   
+    addr = 0
+    
+    while parser.has_more_commands():
+        parser.advance()
         
+        command_type = parser.command_type()
+        if command_type == "L_COMMAND":
+            if table.contains(parser.symbol()):
+                raise Exception("Can't define label twice")
+            table.add_entry(parser.symbol(), addr)
+            
         else:
-        # In case of C instruction
-            line = line.split("=")
-            if len(line) == 1:
-                dest = ""
+            addr += 1
+        
+    # Second pass
+    bin_lines = []
+    RAM_addr = 16
+    
+    # resetting parser
+    parser.line_index = -1
+    
+    
+    while parser.has_more_commands():
+        parser.advance()
+        command_type = parser.command_type()
+        if command_type == "L_COMMAND":
+            continue
+            
+        elif command_type == "A_COMMAND":
+            if parser.symbol().isdigit():
+                addr = int(parser.symbol())
             else:
-                dest = line[0]
-                line = [line[1]]
+                if not table.contains(parser.symbol()):
+                    table.add_entry(parser.symbol(), RAM_addr)
+                    RAM_addr += 1
+                
+                addr = table.get_address(parser.symbol())
             
-            dest = Code.dest(dest)
+            bin_lines.append("{0:b}".format(addr).zfill(16))
             
-            line = line.split(";")
-            comp = Code.comp(line[0])
-            jump = Code.jump(line[1] if len(line) == 1 else "")
+        
+        elif command_type == "C_COMMAND":
+            dest = Code.dest(parser.dest())
+            comp = Code.comp(parser.comp())
+            jump = Code.jump(parser.jump())
             
-            bin = "111" + comp + dest + jump
-            # TODO - make sure that file is open in append mode and that this isn't overriding the lines before
-            output_file.write(bin + "\n")
-            
+            bin_lines.append("111" + comp + dest + jump)
+        
+        
+    # Write output
+    for line in bin_lines:
+        output_file.write(line + "\n")
     
             
 
