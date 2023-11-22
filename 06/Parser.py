@@ -21,10 +21,18 @@ class Parser:
         Args:
             input_file (typing.TextIO): input file.
         """
-        # Your code goes here!
-        # A good place to start is to read all the lines of the input:
-        # input_lines = input_file.read().splitlines()
-        pass
+        input_lines = input_file.read().splitlines()
+        # remove comments and whitespaces
+        self.lines = []
+        for line in input_lines:
+            if "//" in line:
+                line = line[:line.index("//")]
+            line = line.replace(" ", "")
+            if line != "":
+                self.lines.append(line)
+        
+        self.line_index = -1
+        self.line = ""
 
     def has_more_commands(self) -> bool:
         """Are there more commands in the input?
@@ -32,15 +40,14 @@ class Parser:
         Returns:
             bool: True if there are more commands, False otherwise.
         """
-        # Your code goes here!
-        pass
+        return self.line_index + 1 < len(self.lines)
 
     def advance(self) -> None:
         """Reads the next command from the input and makes it the current command.
         Should be called only if has_more_commands() is true.
         """
-        # Your code goes here!
-        pass
+        self.line_index += 1
+        self.line = self.lines[self.line_index]
 
     def command_type(self) -> str:
         """
@@ -50,8 +57,11 @@ class Parser:
             "C_COMMAND" for dest=comp;jump
             "L_COMMAND" (actually, pseudo-command) for (Xxx) where Xxx is a symbol
         """
-        # Your code goes here!
-        pass
+        if self.line[0] == "@":
+            return "A_COMMAND"
+        if self.line[0] == "(":
+            return "L_COMMAND"
+        return "C_COMMAND"
 
     def symbol(self) -> str:
         """
@@ -60,8 +70,7 @@ class Parser:
             (Xxx). Should be called only when command_type() is "A_COMMAND" or 
             "L_COMMAND".
         """
-        # Your code goes here!
-        pass
+        return self.line[1:] if self.command_type() == "A_COMMAND" else self.line[1:-1]
 
     def dest(self) -> str:
         """
@@ -69,8 +78,7 @@ class Parser:
             str: the dest mnemonic in the current C-command. Should be called 
             only when commandType() is "C_COMMAND".
         """
-        # Your code goes here!
-        pass
+        return self.line[:self.line.index("=")] if "=" in self.line else ""
 
     def comp(self) -> str:
         """
@@ -78,8 +86,9 @@ class Parser:
             str: the comp mnemonic in the current C-command. Should be called 
             only when commandType() is "C_COMMAND".
         """
-        # Your code goes here!
-        pass
+        start = self.line.index("=") + 1 if "=" in self.line else 0
+        end = self.line.index(";") if ";" in self.line else len(self.line)
+        return self.line[start:end]
 
     def jump(self) -> str:
         """
@@ -87,5 +96,4 @@ class Parser:
             str: the jump mnemonic in the current C-command. Should be called 
             only when commandType() is "C_COMMAND".
         """
-        # Your code goes here!
-        pass
+        return self.line[self.line.index(";") + 1:] if ";" in self.line else ""
