@@ -1,6 +1,6 @@
 """
 This file is part of nand2tetris, as taught in The Hebrew University, and
-was written by Aviv Yaish. It is an extension to the specifications given
+was written by Aviv Yaish. It is an extension to the SPecifications given
 [here](https://www.nand2tetris.org) (Shimon Schocken and Noam Nisan, 2017),
 as allowed by the Creative Common Attribution-NonCommercial-ShareAlike 3.0
 Unported [License](https://creativecommons.org/licenses/by-nc-sa/3.0/).
@@ -20,6 +20,7 @@ class CodeWriter:
         # Your code goes here!
         # Note that you can write to output_stream like so:
         # output_stream.write("Hello world! \n")
+        self.filename = None
         pass
 
     def set_file_name(self, filename: str) -> None:
@@ -38,10 +39,11 @@ class CodeWriter:
         # To avoid problems with Linux/Windows/MacOS differences with regards
         # to filenames and paths, you are advised to parse the filename in
         # the function "translate_file" in Main.py using python's os library,
-        # For example, using code similar to:
-        # input_filename, input_extension = os.path.splitext(os.path.basename(input_file.name))
-        pass
-
+        
+        self.filename = filename
+        self.if_counter = 0
+        self.stack
+        
     def write_arithmetic(self, command: str) -> None:
         """Writes assembly code that is the translation of the given 
         arithmetic command. For the commands eq, lt, gt, you should correctly
@@ -52,7 +54,63 @@ class CodeWriter:
             command (str): an arithmetic command.
         """
         # Your code goes here!
-        pass
+        output = []
+        output.append("@SP")
+        output.append("M=M-1")
+        output.append("A=M")
+        # Unary commands
+        if command == "neg":
+            output.append("M=-M")
+        elif command == "not":
+            output.append("M=!M")
+        else:
+            output.append("D=M")
+            output.append("@SP")
+            output.append("M=M-1")
+            output.append("A=M")
+        
+            # Binary commands
+            if command == "add":
+                output.append("M=M+D")
+            elif command == "sub":
+                output.append("M=M-D")
+            elif command == "and":
+                output.append("M=M&D")
+            elif command == "or":
+                output.append("M=M|D")
+            elif command == "shiftleft":
+                output.append("M=M<<")
+            elif command == "shiftright":
+                output.append("M=M>>")
+            else:
+                output.append("D=M-D")
+                output.append(f"@{self.filename}CMPIF{self.if_counter}")
+                if command == "eq":
+                    output.append("D;JEQ")
+                elif command == "gt":
+                    output.append("D;JGT")
+                elif command == "lt":
+                    output.append("D;JLT")
+                
+                output.append("@SP")
+                output.append("A=M")
+                output.append("M=0")
+                
+                output.append(f"@{self.filename}CMPSKIP{self.if_counter}")
+                output.append("0;JMP")
+                output.append(f"({self.filename}CMPIF{self.if_counter})")
+                
+                output.append("@SP")
+                output.append("A=M")
+                output.append("M=-1")
+                
+                output.append(f"({self.filename}CMPSKIP{self.if_counter})")
+                
+                if_counter += 1
+            
+            
+        output.append("@SP")
+        output.append("m=m+1")
 
     def write_push_pop(self, command: str, segment: str, index: int) -> None:
         """Writes assembly code that is the translation of the given 
@@ -68,7 +126,62 @@ class CodeWriter:
         # be translated to the assembly symbol "Xxx.i". In the subsequent
         # assembly process, the Hack assembler will allocate these symbolic
         # variables to the RAM, starting at address 16.
-        pass
+        output = []
+        
+        if segment == "constant":
+            output.append(f"@{index}")
+            output.append("D=A")
+            output.append("@SP")
+            output.append("A=M")
+            output.append("M=D") # RAM[SP] = D = i
+            
+            output.append("@SP")
+            output.append("M=M+1")
+            
+            return "\n".join(output)
+        
+        if segment == "argument":
+            output.append("@ARG")
+        elif segment == "local":
+            output.append("@LCL")
+        elif segment == "this" or segment == "pointer":
+            output.append("@THIS")
+        elif segment == "that":
+            output.append("@THAT")
+        elif segment == "temp":
+            output.append("@TEMP")
+        
+        if segment == "static":
+            output.append(f"@{self.filename}.{index}")
+        else:
+            output.append("D=A")
+            output.append(f"@{index}")
+            output.append("A=A+D") # A = base_addr + i
+        
+        
+            
+        if command == "C_PUSH":
+            output.append("D=M") # D = RAM[SEG+i]
+            output.append("@SP")
+            output.append("A=M")
+            output.append("M=D") # RAM[SP] = D = RAM[SEG+i]
+            
+            output.append("@SP")
+            output.append("M=M+1")
+        
+        elif command == "C_POP":
+            output.append("D=A")
+            output.append("@R13")
+            output.append("M=D")
+            output.append("@SP")
+            output.append("A=M")
+            output.append("D=M")
+            output.append("@R13")
+            output.append("A=M")
+            output.append("M=D")
+            
+            output.append("@SP")
+            output.append("M=M-1")
 
     def write_label(self, label: str) -> None:
         """Writes assembly code that affects the label command. 
