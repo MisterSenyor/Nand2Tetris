@@ -21,6 +21,7 @@ class CodeWriter:
         # Note that you can write to output_stream like so:
         # output_stream.write("Hello world! \n")
         self.filename = None
+        self.output = output_stream
         pass
 
     def set_file_name(self, filename: str) -> None:
@@ -42,7 +43,6 @@ class CodeWriter:
         
         self.filename = filename
         self.if_counter = 0
-        self.stack
         
     def write_arithmetic(self, command: str) -> None:
         """Writes assembly code that is the translation of the given 
@@ -110,7 +110,9 @@ class CodeWriter:
             
             
         output.append("@SP")
-        output.append("m=m+1")
+        output.append("M=M+1")
+        
+        self.output.write("\n".join(output) + "\n")
 
     def write_push_pop(self, command: str, segment: str, index: int) -> None:
         """Writes assembly code that is the translation of the given 
@@ -138,7 +140,8 @@ class CodeWriter:
             output.append("@SP")
             output.append("M=M+1")
             
-            return "\n".join(output)
+            self.output.write("\n".join(output) + "\n")
+            return
         
         if segment == "argument":
             output.append("@ARG")
@@ -182,6 +185,8 @@ class CodeWriter:
             
             output.append("@SP")
             output.append("M=M-1")
+            
+        self.output.write("\n".join(output) + "\n")
 
     def write_label(self, label: str) -> None:
         """Writes assembly code that affects the label command. 
