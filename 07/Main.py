@@ -29,10 +29,8 @@ def translate_file(
         command_type = parser.command_type()
         if command_type == "C_ARITHMETIC":
             code_writer.write_arithmetic(command=parser.arg1())
-        elif command_type == "C_PUSH":
-            code_writer.write_push_pop(command="push", segment=parser.arg1(), index=parser.arg2())
-        elif command_type == "C_POP":
-            code_writer.write_push_pop(command="pop", segment=parser.arg1(), index=parser.arg2())
+        elif command_type == "C_PUSH" or command_type == "C_POP":
+            code_writer.write_push_pop(command=command_type, segment=parser.arg1(), index=parser.arg2())
         else:
             raise Exception("not implemented")
 
