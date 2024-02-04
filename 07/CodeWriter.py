@@ -22,7 +22,6 @@ class CodeWriter:
         # output_stream.write("Hello world! \n")
         self.filename = None
         self.output = output_stream
-        pass
 
     def set_file_name(self, filename: str) -> None:
         """Informs the code writer that the translation of a new VM file is 
@@ -106,7 +105,7 @@ class CodeWriter:
                 
                 output.append(f"({self.filename}CMPSKIP{self.if_counter})")
                 
-                if_counter += 1
+                self.if_counter += 1
             
             
         output.append("@SP")
@@ -157,7 +156,7 @@ class CodeWriter:
         if segment == "static":
             output.append(f"@{self.filename}.{index}")
         else:
-            output.append("D=A")
+            output.append("D=M")
             output.append(f"@{index}")
             output.append("A=A+D") # A = base_addr + i
         
@@ -177,14 +176,14 @@ class CodeWriter:
             output.append("@R13")
             output.append("M=D")
             output.append("@SP")
+            output.append("M=M-1")
             output.append("A=M")
             output.append("D=M")
             output.append("@R13")
             output.append("A=M")
             output.append("M=D")
             
-            output.append("@SP")
-            output.append("M=M-1")
+
             
         self.output.write("\n".join(output) + "\n")
 
