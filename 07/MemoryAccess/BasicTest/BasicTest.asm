@@ -131,8 +131,8 @@ A=M
 M=D
 @SP
 M=M+1
-@TEMP
-D=M
+@5
+D=A
 @6
 A=A+D
 D=A
@@ -235,8 +235,8 @@ A=M
 M=M-D
 @SP
 M=M+1
-@TEMP
-D=M
+@5
+D=A
 @6
 A=A+D
 D=M

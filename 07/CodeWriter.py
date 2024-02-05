@@ -151,12 +151,16 @@ class CodeWriter:
         elif segment == "that":
             output.append("@THAT")
         elif segment == "temp":
-            output.append("@TEMP")
-        
+            output.append("@5")
+        elif segment == "pointer":
+            output.append("@THIS")
         if segment == "static":
             output.append(f"@{self.filename}.{index}")
         else:
-            output.append("D=M")
+            if segment in ["temp", "pointer"]:
+                output.append("D=A")
+            else:
+                output.append("D=M")
             output.append(f"@{index}")
             output.append("A=A+D") # A = base_addr + i
         
