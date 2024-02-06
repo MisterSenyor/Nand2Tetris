@@ -43,6 +43,166 @@ class CodeWriter:
         self.filename = filename
         self.if_counter = 0
         
+    def write_unary(self, command: str):
+        output = []
+
+        output.append("@SP")
+        output.append("A=M-1")
+        if command == "neg":
+            output.append("M=-M")
+        elif command == "not":
+            output.append("M=!M")
+        
+        self.output.write("\n".join(output) + "\n")
+
+    def write_binary(self, command: str):
+        output = []
+
+        output.append("@SP")
+        output.append("M=M-1")
+        output.append("A=M")
+        output.append("D=M")
+        output.append("@SP")
+        output.append("M=M-1")
+        output.append("A=M")
+    
+        # Binary commands
+        if command == "add":
+            output.append("M=M+D")
+        elif command == "sub":
+            output.append("M=M-D")
+        elif command == "and":
+            output.append("M=M&D")
+        elif command == "or":
+            output.append("M=M|D")
+        elif command == "shiftleft":
+            output.append("M=M<<")
+        elif command == "shiftright":
+            output.append("M=M>>")
+
+        output.append("@SP")
+        output.append("M=M+1")
+        
+        self.output.write("\n".join(output) + "\n")
+    
+    def write_compare_eq(self):
+        output = []
+
+        output.append("@SP")
+        output.append("M=M-1")
+        output.append("A=M")
+        output.append("D=M")
+        output.append("@SP")
+        output.append("M=M-1")
+        output.append("A=M")
+    
+        output.append("D=M-D")
+        output.append(f"@{self.filename}CMPIF{self.if_counter}")
+        output.append("D;JEQ")
+        
+        output.append("@SP")
+        output.append("A=M")
+        output.append("M=0")
+        
+        output.append(f"@{self.filename}CMPSKIP{self.if_counter}")
+        output.append("0;JMP")
+        output.append(f"({self.filename}CMPIF{self.if_counter})")
+        
+        output.append("@SP")
+        output.append("A=M")
+        output.append("M=-1")
+        
+        output.append(f"({self.filename}CMPSKIP{self.if_counter})")
+        output.append("@SP")
+        output.append("M=M+1")
+        
+        self.output.write("\n".join(output) + "\n")
+        self.if_counter += 1
+
+    def write_compare_neq(self, command: str):
+        output = []
+
+        output.append("@SP")
+        output.append("M=M-1")
+        output.append("A=M")
+        output.append("D=M")
+
+        output.append(f"@{self.filename}Ypos{self.if_counter}")
+        output.append("D;JGT")
+        output.append(f"@{self.filename}Yneg{self.if_counter}")
+        output.append("0;JMP")
+
+        # Y > 0
+        output.append(f"({self.filename}Ypos{self.if_counter})")
+        output.append("@SP")
+        output.append("M=M-1")
+        output.append("A=M")
+        output.append("D=M")
+
+        output.append(f"@{self.filename}XYpos{self.if_counter}")
+        output.append("D;JGE")
+        output.append(f"@{self.filename}YgtX{self.if_counter}")
+        output.append("0;JMP")
+
+        # Y <= 0
+        output.append(f"({self.filename}Yneg{self.if_counter})")
+        output.append("@SP")
+        output.append("M=M-1")
+        output.append("A=M")
+        output.append("D=M")
+
+        output.append(f"@{self.filename}YltX{self.if_counter}")
+        output.append("D;JGT")
+        output.append(f"@{self.filename}XYpos{self.if_counter}")
+        output.append("0;JMP")
+
+        # XY >= 0
+        output.append(f"({self.filename}XYpos{self.if_counter})")
+        output.append("@SP")
+        output.append("A=M+1")
+        output.append("D=M-D")
+        output.append(f"@{self.filename}YgtX{self.if_counter}")
+        output.append("D;JGT")
+        output.append(f"@{self.filename}YeqX{self.if_counter}")
+        output.append("D;JEQ")
+        output.append(f"@{self.filename}YltX{self.if_counter}")
+        output.append("0;JMP")
+
+        # Y < X
+        output.append(f"({self.filename}YltX{self.if_counter})")
+        if command == "lt":
+            output.append("D=0")
+        else:
+            output.append("D=-1")
+        output.append(f"@{self.filename}end{self.if_counter}")
+        output.append("0;JMP")
+
+        # Y > X
+        output.append(f"({self.filename}YgtX{self.if_counter})")
+        if command == "gt":
+            output.append("D=0")
+        else:
+            output.append("D=-1")
+        output.append(f"@{self.filename}end{self.if_counter}")
+        output.append("0;JMP")
+
+        # Y = X
+        output.append(f"({self.filename}YeqX{self.if_counter})")
+        output.append("D=0")
+        output.append(f"@{self.filename}end{self.if_counter}")
+        output.append("0;JMP")
+
+        output.append(f"({self.filename}end{self.if_counter})")
+        output.append("@SP")
+        output.append("A=M")
+        output.append("M=D")
+        output.append("@SP")
+        output.append("M=M+1")
+        
+        self.output.write("\n".join(output) + "\n")
+        self.if_counter += 1
+
+
     def write_arithmetic(self, command: str) -> None:
         """Writes assembly code that is the translation of the given 
         arithmetic command. For the commands eq, lt, gt, you should correctly
@@ -53,65 +213,15 @@ class CodeWriter:
             command (str): an arithmetic command.
         """
         # Your code goes here!
-        output = []
-        output.append("@SP")
-        output.append("M=M-1")
-        output.append("A=M")
-        # Unary commands
-        if command == "neg":
-            output.append("M=-M")
-        elif command == "not":
-            output.append("M=!M")
+        if command == "neg" or command == "not":
+            self.write_unary(command)
+        elif command == "eq":
+            self.write_compare_eq()
+        elif command == "gt" or command == "lt":
+            self.write_compare_neq(command)
         else:
-            output.append("D=M")
-            output.append("@SP")
-            output.append("M=M-1")
-            output.append("A=M")
-        
-            # Binary commands
-            if command == "add":
-                output.append("M=M+D")
-            elif command == "sub":
-                output.append("M=M-D")
-            elif command == "and":
-                output.append("M=M&D")
-            elif command == "or":
-                output.append("M=M|D")
-            elif command == "shiftleft":
-                output.append("M=M<<")
-            elif command == "shiftright":
-                output.append("M=M>>")
-            else:
-                output.append("D=M-D")
-                output.append(f"@{self.filename}CMPIF{self.if_counter}")
-                if command == "eq":
-                    output.append("D;JEQ")
-                elif command == "gt":
-                    output.append("D;JGT")
-                elif command == "lt":
-                    output.append("D;JLT")
-                
-                output.append("@SP")
-                output.append("A=M")
-                output.append("M=0")
-                
-                output.append(f"@{self.filename}CMPSKIP{self.if_counter}")
-                output.append("0;JMP")
-                output.append(f"({self.filename}CMPIF{self.if_counter})")
-                
-                output.append("@SP")
-                output.append("A=M")
-                output.append("M=-1")
-                
-                output.append(f"({self.filename}CMPSKIP{self.if_counter})")
-                
-                self.if_counter += 1
-            
-            
-        output.append("@SP")
-        output.append("M=M+1")
-        
-        self.output.write("\n".join(output) + "\n")
+            self.write_binary(command)
+
 
     def write_push_pop(self, command: str, segment: str, index: int) -> None:
         """Writes assembly code that is the translation of the given 
@@ -152,8 +262,7 @@ class CodeWriter:
             output.append("@THAT")
         elif segment == "temp":
             output.append("@5")
-        elif segment == "pointer":
-            output.append("@THIS")
+
         if segment == "static":
             output.append(f"@{self.filename}.{index}")
         else:
