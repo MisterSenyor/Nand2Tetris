@@ -5,12 +5,11 @@ was written by Aviv Yaish. It is an extension to the specifications given
 as allowed by the Creative Common Attribution-NonCommercial-ShareAlike 3.0
 Unported [License](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 """
-import os
+import pathlib
 import sys
 import typing
 from Parser import Parser
 from CodeWriter import CodeWriter
-import hashlib
 
 
 def translate_file(
@@ -21,10 +20,9 @@ def translate_file(
         input_file (typing.TextIO): the file to translate.
         output_file (typing.TextIO): writes all output to this file.
     """
-    hashed_filename = 'hash' + hashlib.sha256(input_file.name.encode()).hexdigest()
     parser = Parser(input_file)
     code_writer = CodeWriter(output_file)
-    code_writer.set_file_name(hashed_filename)
+    code_writer.set_file_name(pathlib.Path(input_file).stem)
 
     while parser.has_more_commands():
         parser.advance()

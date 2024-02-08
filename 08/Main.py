@@ -24,8 +24,33 @@ def translate_file(
             first file we are translating.
     """
     # Your code goes here!
-    pass
+    filename, extension = os.path.splitext(input_file.name)
+    parser = Parser(input_file)
+    code_writer = CodeWriter(output_file)
+    code_writer.set_file_name(filename.split("\\")[-1])
+    
 
+
+    while parser.has_more_commands():
+        parser.advance()
+        command_type = parser.command_type()
+        if command_type == "C_ARITHMETIC":
+            code_writer.write_arithmetic(command=parser.arg1())
+        elif command_type == "C_PUSH" or command_type == "C_POP":
+            code_writer.write_push_pop(command=command_type, segment=parser.arg1(), index=parser.arg2())
+        elif command_type == "C_LABEL":
+            code_writer.write_label(label=parser.arg1())
+        elif command_type == "C_IF":
+            code_writer.write_if(label=parser.arg1())
+        elif command_type == "C_GOTO":
+            code_writer.write_goto(label=parser.arg1())
+        elif command_type == "C_FUNCTION":
+            code_writer.write_function(function_name=parser.arg1(), n_vars=parser.arg2())
+        elif command_type == "C_CALL":
+            code_writer.write_call(function_name=parser.arg1(), n_vars=parser.arg2())
+        elif command_type == "C_RETURN":
+            code_writer.write_return()
+            
 
 if "__main__" == __name__:
     # Parses the input path and calls translate_file on each input file.
