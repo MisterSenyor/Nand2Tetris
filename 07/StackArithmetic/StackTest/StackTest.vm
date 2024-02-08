@@ -8,8 +8,8 @@
 push constant 17
 push constant 17
 eq
-push constant 17
-push constant 16
+push constant -1
+push constant 32767
 eq
 push constant 16
 push constant 17
