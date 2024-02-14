@@ -116,7 +116,8 @@ M=D
 @SP
 M=M+1
 @SP
-A=M-1
+M=M-1
+A=M
 D=M
 @BasicLoop$LOOP_START
 D;JNE

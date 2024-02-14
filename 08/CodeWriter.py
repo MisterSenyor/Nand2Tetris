@@ -8,6 +8,9 @@ Unported [License](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 import typing
 
 
+call_counter = {}
+
+
 class CodeWriter:
     """Translates VM commands into Hack assembly code."""
 
@@ -23,7 +26,6 @@ class CodeWriter:
         self.filename = None
         self.output = output_stream
         self.curr_func = []
-        self.call_counter = {}
 
     def set_file_name(self, filename: str) -> None:
         """Informs the code writer that the translation of a new VM file is 
@@ -320,7 +322,7 @@ class CodeWriter:
         if len(self.curr_func) == 0:
             output.append(f"({self.filename}${label})")
         else:
-            output.append(f"({self.filename}.{self.curr_func[-1]}${label})")
+            output.append(f"({self.curr_func[-1]}${label})")
         
         self.output.write(output[0] + "\n")
     
@@ -337,7 +339,7 @@ class CodeWriter:
         if len(self.curr_func) == 0:
             output.append(f"@{self.filename}${label}")
         else:
-            output.append(f"@{self.filename}.{self.curr_func[-1]}${label}")
+            output.append(f"@{self.curr_func[-1]}${label}")
         
         output.append("0;JMP")
         
@@ -354,13 +356,14 @@ class CodeWriter:
         output = []
         
         output.append("@SP")
-        output.append("A=M-1")
+        output.append("M=M-1")
+        output.append("A=M")
         output.append("D=M")
         
         if len(self.curr_func) == 0:
             output.append(f"@{self.filename}${label}")
         else:
-            output.append(f"@{self.filename}.{self.curr_func[-1]}${label}")
+            output.append(f"@{self.curr_func[-1]}${label}")
         
         output.append("D;JNE")
         
@@ -388,7 +391,7 @@ class CodeWriter:
         output = []
         self.curr_func.append(function_name)
         
-        output.append(f"({self.filename}.{self.curr_func[-1]})")
+        output.append(f"({self.curr_func[-1]})")
         
         self.output.write("\n".join(output) + "\n")
         
@@ -427,16 +430,15 @@ class CodeWriter:
         # (return_address)      // injects the return address label into the code
         output = []
 
-        if function_name not in self.call_counter:
-            self.call_counter[function_name] = 0
-        else:
-            self.call_counter[function_name] += 1
-
         # push return address
         if len(self.curr_func) == 0:
-            output.append(f"@{self.filename}$ret.{self.call_counter[function_name]}")
+            output.append(f"@{self.filename}$ret.0")
         else:
-            output.append(f"@{self.filename}.{self.curr_func[-1]}$ret.{self.call_counter[function_name]}")
+            if self.curr_func[-1] not in call_counter:
+                call_counter[self.curr_func[-1]] = 0
+            else:
+                call_counter[self.curr_func[-1]] += 1
+            output.append(f"@{self.curr_func[-1]}$ret.{call_counter[self.curr_func[-1]]}")
         output.append("D=A")
         output.append("@SP")
         output.append("M=M+1")
@@ -455,7 +457,7 @@ class CodeWriter:
         # ARG = SP - (5 + num_args)
         output.append("@SP")
         output.append("D=M")
-        output.append(f"@{5 + self.num_args}")
+        output.append(f"@{5 + n_args}")
         output.append("D=D-A")
         output.append("@ARG")
         output.append("M=D")
@@ -468,16 +470,18 @@ class CodeWriter:
 
         
         # goto function name
-        output.append(f"@{self.filename}.{function_name})")
+        output.append(f"@{function_name}")
         output.append("0;JMP")
         
-        self.output.write("\n".join(output) + "\n")
 
         # return address        
         if len(self.curr_func) == 0:
-            output.append(f"({self.filename}$ret.{self.call_counter[function_name]})")
+            output.append(f"({self.filename}$ret.0)")
         else:
-            output.append(f"({self.filename}.{self.curr_func[-1]}$ret.{self.call_counter[function_name]})")
+            output.append(f"({self.curr_func[-1]}$ret.{call_counter[self.curr_func[-1]]})")
+            
+            
+        self.output.write("\n".join(output) + "\n")
     
     def write_return(self) -> None:
         """Writes assembly code that affects the return command."""
@@ -523,7 +527,7 @@ class CodeWriter:
         output.append("@SP")
         output.append("M=D")
         
-        # THAT = RAM[FRAME - 1], THIS = RAM[FRAME - 1], ...
+        # THAT = RAM[FRAME - 1], THIS = RAM[FRAME - 2], ...
         addrs = ["THAT", "THIS", "ARG", "LCL"]
         for i in range(len(addrs)):
             output.append("@R13")
@@ -541,4 +545,18 @@ class CodeWriter:
         
         self.output.write("\n".join(output) + "\n")
 
-        del self.curr_func[-1]
+        
+        
+    def write_bootstrap(self):
+        output = []
+        
+        # SP = 256
+        output.append("@256")
+        output.append("D=A")
+        output.append("@SP")
+        output.append("M=D")
+        
+        self.output.write("\n".join(output) + "\n")
+        
+        # call Sys.init
+        self.write_call("Sys.init", 0)
