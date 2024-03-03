@@ -27,10 +27,11 @@ def translate_file(
     filename, extension = os.path.splitext(input_file.name)
     parser = Parser(input_file)
     code_writer = CodeWriter(output_file)
+    if bootstrap:
+        code_writer.set_file_name("Sys")
+        code_writer.write_bootstrap()
     code_writer.set_file_name(filename.split("\\")[-1])
     
-
-
     while parser.has_more_commands():
         parser.advance()
         command_type = parser.command_type()
@@ -47,9 +48,11 @@ def translate_file(
         elif command_type == "C_FUNCTION":
             code_writer.write_function(function_name=parser.arg1(), n_vars=parser.arg2())
         elif command_type == "C_CALL":
-            code_writer.write_call(function_name=parser.arg1(), n_vars=parser.arg2())
+            code_writer.write_call(function_name=parser.arg1(), n_args=parser.arg2())
         elif command_type == "C_RETURN":
             code_writer.write_return()
+        else:
+            raise ValueError()
             
 
 if "__main__" == __name__:
