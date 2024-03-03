@@ -23,12 +23,46 @@ class CompilationEngine:
         # Your code goes here!
         # Note that you can write to output_stream like so:
         # output_stream.write("Hello world! \n")
-        pass
+        self.input = input_stream
+        self.output = output_stream
+
+    def write_line(self, xml_header, xml_content):
+        self.output(f"<{xml_header}> {xml_content} </{xml_header}>\n")
+
+    def write_current_token(self):
+        token_type = self.input.token_type()
+        if token_type == "KEYWORD":
+            keyword = self.input.keyword()
+            self.write_line('keyword', keyword.lower())
+        elif token_type == "SYMBOL":
+            symbol = self.input.symbol()
+            if symbol == '<':
+                symbol = '&lt;'
+            elif symbol == '>':
+                symbol = '&gt;'
+            elif symbol == '&':
+                symbol = '&amp;'
+            self.write_line('symbol', symbol)
+        elif token_type == 'IDENTIFIER':
+            identifier = self.input.identifier()
+            self.write_line('identifier', identifier)
+        elif token_type == 'INT_CONST':
+            int_val = self.input.int_val()
+            int_val = str(self.input.int_val())
+            self.write_line('integerConstant', int_val)
+        elif token_type == 'STRING_CONST':
+            string_val = self.input.string_val()
+            string_val = string_val[1:-1]
+            self.write_line('stringConstant', string_val)
 
     def compile_class(self) -> None:
         """Compiles a complete class."""
         # Your code goes here!
-        pass
+        self.output.write("<tokens>\n")
+        while self.input.has_more_tokens():
+            self.input.advance()
+            self.write_current_token()
+        self.output.write("</tokens>\n")
 
     def compile_class_var_dec(self) -> None:
         """Compiles a static declaration or a field declaration."""
