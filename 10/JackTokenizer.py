@@ -100,9 +100,61 @@ class JackTokenizer:
         """
         # Your code goes here!
         # A good place to start is to read all the lines of the input:
-        # input_lines = input_stream.read().splitlines()
-        pass
+        self.input_lines = input_stream.read().splitlines()
+        if len(self.input_lines) == 0:
+            raise ValueError("ERROR - NO INPUT WAS GIVEN")
+        self.line = 0
 
+    def skip_to_token(self, multi=False) -> None:
+        """Skips straight to the code in the code, deleting them in input_lines[line]"""
+        if self.line >= len(self.input_lines):
+            return
+        if not multi:
+            self.input_lines[self.line] = self.input_lines[self.line].strip()
+            line = self.input_lines[self.line]
+            if len(line) == 0:
+                self.line += 1
+                self.skip_to_token()
+                return
+            
+            if len(line) == 1:
+                return
+            
+            i = 0
+            # If we encounter inline comment, skip to next line
+            if line[i:i+2] == "//":
+                self.line += 1
+                self.skip_to_token()
+                return
+        
+            in_comment_multi = line[i:i+2] == "/*"
+            if not in_comment_multi:
+                return
+            
+            i += 1
+        else:
+            if len(line) < 2:
+                self.line += 1
+                self.skip_to_token(multi=True)
+                return
+            in_comment_multi = True
+            i = -1
+            
+        while in_comment_multi:
+            if i >= len(line) - 1:
+                self.line += 1
+                self.skip_to_token(multi=True)
+                return
+            i += 1
+            in_comment_multi = line[i:i+2] != "*/"
+        
+        self.input_lines[self.line] = self.input_lines[self.line][i+2:]
+        self.skip_to_token()
+        return
+        
+        
+        
+        
     def has_more_tokens(self) -> bool:
         """Do we have more tokens in the input?
 
@@ -110,15 +162,33 @@ class JackTokenizer:
             bool: True if there are more tokens, False otherwise.
         """
         # Your code goes here!
-        pass
-
+        self.skip_to_token()
+        return self.line < len(self.input_lines)
+        
     def advance(self) -> None:
         """Gets the next token from the input and makes it the current token. 
         This method should be called if has_more_tokens() is true. 
         Initially there is no current token.
         """
         # Your code goes here!
-        pass
+        line = self.input_lines[self.line]
+        self.token = ""
+        # in case of str
+        if line[0] == '"':
+            self.token = line.split('"')[0][:-1] + '"'
+            self.input_lines[self.line] = self.input_lines[self.line][len(self.token) + 1:]
+        elif line[0] in ['{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', ',', '<', '>', '=', '~', '^', '#']:
+            self.token = line[0]
+            self.input_lines[self.line] = self.input_lines[self.line][1:]
+        else:
+            for i, c in enumerate(line):
+                if not c.isalpha() and c != '_':
+                    self.token = line[:i]
+                    self.input_lines[self.line] = self.input_lines[self.line][i:]
+                    break
+            
+                    
+        
 
     def token_type(self) -> str:
         """
@@ -127,7 +197,17 @@ class JackTokenizer:
             "KEYWORD", "SYMBOL", "IDENTIFIER", "INT_CONST", "STRING_CONST"
         """
         # Your code goes here!
-        pass
+        if self.token[0] == '"':
+            return "STRING_CONST"
+        elif self.token[0].isdigit():
+            return "INT_CONST"
+        elif len(self.token) == 1:
+            return "SYMBOL"
+        elif self.token in ['class', 'constructor', 'function', 'method', 'field', 'static', 'var', 'int', 'char', 'boolean',
+            'void', 'true', 'false', 'null', 'this', 'let', 'do', 'if', 'else', 'while', 'return']:
+            return "KEYWORD"
+        else:
+            return "IDENTIFIER"
 
     def keyword(self) -> str:
         """
@@ -139,7 +219,7 @@ class JackTokenizer:
             "IF", "ELSE", "WHILE", "RETURN", "TRUE", "FALSE", "NULL", "THIS"
         """
         # Your code goes here!
-        pass
+        return self.keyword.upper()
 
     def symbol(self) -> str:
         """
@@ -151,7 +231,7 @@ class JackTokenizer:
               '-' | '*' | '/' | '&' | '|' | '<' | '>' | '=' | '~' | '^' | '#'
         """
         # Your code goes here!
-        pass
+        return self.token
 
     def identifier(self) -> str:
         """
@@ -164,7 +244,7 @@ class JackTokenizer:
                   identifiers, so 'self' cannot be an identifier, etc'.
         """
         # Your code goes here!
-        pass
+        return self.token
 
     def int_val(self) -> int:
         """
@@ -175,7 +255,7 @@ class JackTokenizer:
             integerConstant: A decimal number in the range 0-32767.
         """
         # Your code goes here!
-        pass
+        return int(self.token)
 
     def string_val(self) -> str:
         """
@@ -187,4 +267,4 @@ class JackTokenizer:
                       double quote or newline '"'
         """
         # Your code goes here!
-        pass
+        return self.token
