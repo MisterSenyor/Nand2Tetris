@@ -27,7 +27,7 @@ class CompilationEngine:
         self.output = output_stream
 
     def write_line(self, xml_header, xml_content):
-        self.output(f"<{xml_header}> {xml_content} </{xml_header}>\n")
+        self.output.write(f"<{xml_header}> {xml_content} </{xml_header}>\n")
 
     def write_current_token(self):
         token_type = self.input.token_type()

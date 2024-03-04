@@ -133,6 +133,7 @@ class JackTokenizer:
             
             i += 1
         else:
+            line = self.input_lines[self.line]
             if len(line) < 2:
                 self.line += 1
                 self.skip_to_token(multi=True)
@@ -172,36 +173,36 @@ class JackTokenizer:
         """
         # Your code goes here!
         line = self.input_lines[self.line]
+        print(line)
         self.token = ""
         # in case of str
         if line[0] == '"':
-            self.token = line.split('"')[0][:-1] + '"'
-            self.input_lines[self.line] = self.input_lines[self.line][len(self.token) + 1:]
-        elif line[0] in ['{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', ',', '<', '>', '=', '~', '^', '#']:
+            self.token = '"' + line.split('"')[1] + '"'
+            self.input_lines[self.line] = self.input_lines[self.line][len(self.token):]
+        elif line[0] in ['{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '|', '&', ',', '<', '>', '=', '~', '^', '#']:
             self.token = line[0]
             self.input_lines[self.line] = self.input_lines[self.line][1:]
         else:
             for i, c in enumerate(line):
-                if not c.isalpha() and c != '_':
+                if not c.isalnum() and c != '_':
                     self.token = line[:i]
                     self.input_lines[self.line] = self.input_lines[self.line][i:]
                     break
             
                     
-        
-
     def token_type(self) -> str:
         """
         Returns:
             str: the type of the current token, can be
             "KEYWORD", "SYMBOL", "IDENTIFIER", "INT_CONST", "STRING_CONST"
         """
+        print(f"{self.token=}")
         # Your code goes here!
         if self.token[0] == '"':
             return "STRING_CONST"
         elif self.token[0].isdigit():
             return "INT_CONST"
-        elif len(self.token) == 1:
+        elif self.token in ['{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '|', '&', ',', '<', '>', '=', '~', '^', '#']:
             return "SYMBOL"
         elif self.token in ['class', 'constructor', 'function', 'method', 'field', 'static', 'var', 'int', 'char', 'boolean',
             'void', 'true', 'false', 'null', 'this', 'let', 'do', 'if', 'else', 'while', 'return']:
@@ -219,7 +220,7 @@ class JackTokenizer:
             "IF", "ELSE", "WHILE", "RETURN", "TRUE", "FALSE", "NULL", "THIS"
         """
         # Your code goes here!
-        return self.keyword.upper()
+        return self.token.upper()
 
     def symbol(self) -> str:
         """
