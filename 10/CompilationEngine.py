@@ -25,6 +25,7 @@ class CompilationEngine:
         # output_stream.write("Hello world! \n")
         self.input = input_stream
         self.output = output_stream
+        self.indent_count = 0
 
     def is_class_var_dec(self):
         return self.input.token_type() == "KEYWORD" and self.input.keyword() in ["STATIC", "FIELD"]
@@ -87,7 +88,7 @@ class CompilationEngine:
         return self.input.token_type() == "IDENTIFIER"
 
     def write_line(self, xml_header, xml_content):
-        self.output.write(f"<{xml_header}> {xml_content} </{xml_header}>\n")
+        self.output.write(self.indent_count * '  ' + f"<{xml_header}> {xml_content} </{xml_header}>\n")
 
     def write_current_token(self):
         token_type = self.input.token_type()
@@ -116,10 +117,12 @@ class CompilationEngine:
             self.write_line('stringConstant', string_val)
 
     def write_open(self, xml_header: str):
-        self.output.write(f"<{xml_header}>\n")
+        self.output.write(self.indent_count * '  ' + f"<{xml_header}>\n")
+        self.indent_count += 1
     
     def write_close(self, xml_header: str):
-        self.output.write(f"</{xml_header}>\n")
+        self.output.write(self.indent_count * '  ' + f"</{xml_header}>\n")
+        self.indent_count -= 1
 
     def read_write_tokens(self, count: int):
         for _ in range(count):
@@ -131,14 +134,6 @@ class CompilationEngine:
             self.input.advance()
 
     def compile_class(self) -> None:
-        """Compiles a complete class."""
-        # Your code goes here!
-        # self.output.write("<tokens>\n")
-        # while self.input.has_more_tokens():
-        #     self.input.advance()
-        #     self.write_current_token()
-        # self.output.write("</tokens>\n")
-
         self.check_advance()
         self.write_open("class")
         self.read_write_tokens(3)  # 'class' className '{'
@@ -330,7 +325,7 @@ class CompilationEngine:
         if not self.is_closing_bracket():
             self.compile_expression()
             while self.is_comma():
-                self.read_write_tokens()  # ','
+                self.read_write_tokens(1)  # ','
                 self.compile_expression()
         self.write_close("expressionList")
 
