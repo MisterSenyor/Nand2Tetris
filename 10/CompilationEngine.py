@@ -121,8 +121,8 @@ class CompilationEngine:
         self.indent_count += 1
     
     def write_close(self, xml_header: str):
-        self.output.write(self.indent_count * '  ' + f"</{xml_header}>\n")
         self.indent_count -= 1
+        self.output.write(self.indent_count * '  ' + f"</{xml_header}>\n")
 
     def read_write_tokens(self, count: int):
         for _ in range(count):
