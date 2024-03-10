@@ -17,16 +17,21 @@ class SymbolTable:
     def __init__(self) -> None:
         """Creates a new empty symbol table."""
         # Your code goes here!
-        pass
+        self.class_table = {}
+        self.sub_table = {}
+        self.class_idx, self.sub_idx = 0, 0
+        self.curr_scope = self.class_table
+        
+
 
     def start_subroutine(self) -> None:
         """Starts a new subroutine scope (i.e., resets the subroutine's 
         symbol table).
         """
         # Your code goes here!
-        pass
+        self.sub_table = {}
 
-    def define(self, name: str, type: str, kind: str) -> None:
+    def define(self, name: str, identifier_type: str, kind: str) -> None:
         """Defines a new identifier of a given name, type and kind and assigns 
         it a running index. "STATIC" and "FIELD" identifiers have a class scope, 
         while "ARG" and "VAR" identifiers have a subroutine scope.
@@ -38,7 +43,12 @@ class SymbolTable:
             "STATIC", "FIELD", "ARG", "VAR".
         """
         # Your code goes here!
-        pass
+        if kind in ["STATIC", "FIELD"]:
+            self.class_table[name] = [kind, self.class_idx, identifier_type]
+            self.class_idx += 1
+        else:
+            self.sub_table[name] = [kind, self.sub_idx, identifier_type]
+            self.sub_idx += 1
 
     def var_count(self, kind: str) -> int:
         """
@@ -50,7 +60,12 @@ class SymbolTable:
             the current scope.
         """
         # Your code goes here!
-        pass
+        c = 0
+        for var in self.curr_scope:
+            if self.curr_scope[var][0] == kind:
+                c += 1
+        
+        return c
 
     def kind_of(self, name: str) -> str:
         """
@@ -62,8 +77,8 @@ class SymbolTable:
             if the identifier is unknown in the current scope.
         """
         # Your code goes here!
-        pass
-
+        return self.curr_scope[name][0] if name in self.curr_scope else None
+    
     def type_of(self, name: str) -> str:
         """
         Args:
@@ -73,7 +88,8 @@ class SymbolTable:
             str: the type of the named identifier in the current scope.
         """
         # Your code goes here!
-        pass
+        return self.curr_scope[name][2] if name in self.curr_scope else None
+        
 
     def index_of(self, name: str) -> int:
         """
@@ -84,4 +100,4 @@ class SymbolTable:
             int: the index assigned to the named identifier.
         """
         # Your code goes here!
-        pass
+        return self.curr_scope[name][1] if name in self.curr_scope else None
