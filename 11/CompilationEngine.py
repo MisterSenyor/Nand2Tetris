@@ -13,7 +13,7 @@ class CompilationEngine:
     output stream.
     """
 
-    def __init__(self, input_stream: "JackTokenizer", output_stream) -> None:
+    def __init__(self, input_stream: "JackTokenizer", output_stream, symbol_table: SymbolTable, vm_writer: VMWriter) -> None:
         """
         Creates a new compilation engine with the given input and output. The
         next routine called must be compileClass()
@@ -26,6 +26,8 @@ class CompilationEngine:
         self.input = input_stream
         self.output = output_stream
         self.indent_count = 0
+        self.symbol_table = symbol_table
+        self.vm_writer = vm_writer
 
     def is_class_var_dec(self):
         return self.input.token_type() == "KEYWORD" and self.input.keyword() in ["STATIC", "FIELD"]
@@ -285,6 +287,8 @@ class CompilationEngine:
         while self.is_op():
             self.read_write_tokens(1)  # op
             self.compile_term()
+            self.write_current_token()
+            self.check_advance()
         self.write_close("expression")
 
     def compile_term(self) -> None:

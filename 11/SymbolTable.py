@@ -30,6 +30,7 @@ class SymbolTable:
         """
         # Your code goes here!
         self.sub_table = {}
+        self.curr_scope = self.sub_table
 
     def define(self, name: str, identifier_type: str, kind: str) -> None:
         """Defines a new identifier of a given name, type and kind and assigns 
@@ -38,7 +39,7 @@ class SymbolTable:
 
         Args:
             name (str): the name of the new identifier.
-            type (str): the type of the new identifier.
+            tpe (str): the type of the new identifier.
             kind (str): the kind of the new identifier, can be:
             "STATIC", "FIELD", "ARG", "VAR".
         """
