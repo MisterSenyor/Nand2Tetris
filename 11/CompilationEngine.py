@@ -7,6 +7,17 @@ Unported [License](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 """
 import typing
 
+ops = {"+" : "ADD", 
+    "-" : "SUB", 
+    "-" : "NEG", 
+    "=" : "EQ", 
+    ">" : "GT", 
+    "<" : "LT", 
+    "&" : "AND", 
+    "|" : "OR", 
+    "~" : "NOT", 
+    "^" : "SHIFTLEFT", 
+    "#" : "SHIFTRIGHT"}
 
 class CompilationEngine:
     """Gets input from a JackTokenizer and emits its parsed structure into an
@@ -282,13 +293,13 @@ class CompilationEngine:
     def compile_expression(self) -> None:
         """Compiles an expression."""
         # Your code goes here!
-        self.write_open("expression")
+        
         self.compile_term()
         while self.is_op():
-            self.read_write_tokens(1)  # op
-            self.compile_term()
-            self.write_current_token()
+            op = self.input.symbol()
             self.check_advance()
+            self.compile_term()
+            self.vm_writer.write_arithmetic(ops[op])
         self.write_close("expression")
 
     def compile_term(self) -> None:
@@ -304,18 +315,23 @@ class CompilationEngine:
         # Your code goes here!
         self.write_open("term")
         if self.is_unary_op():
-            self.read_write_tokens(1)  # op
+            op = self.input.symbol()
+            self.check_advance()
             self.compile_term()
+            self.vm_writer.write_arithmetic(ops[op])
         elif self.is_opening_bracket():
-            self.read_write_tokens(1)  # '('
+            self.check_advance()  # '('
             self.compile_expression()
-            self.read_write_tokens(1)  # ')'
+            self.check_advance()  # ')'
         elif self.is_identifier():
-            self.read_write_tokens(1)  # identifier
+            id = self.input.symbol()
+            self.check_advance()
             if self.is_square_opening_bracket():
-                self.read_write_tokens(1)  # '['
+                self.check_advance()  # '['
                 self.compile_expression()
-                self.read_write_tokens(1)  # ']'
+                self.check_advance()  # ']'
+                self.vm_writer.write_push(self.get_segment_index_pair(id))
+                self.vm_writer.write_arithmetic("ADD")
             elif self.is_subroutine_call_second_token():
                 self.compile_subroutine_call_second_token()
         else:
@@ -325,13 +341,11 @@ class CompilationEngine:
     def compile_expression_list(self) -> None:
         """Compiles a (possibly empty) comma-separated list of expressions."""
         # Your code goes here!
-        self.write_open("expressionList")
         if not self.is_closing_bracket():
             self.compile_expression()
             while self.is_comma():
-                self.read_write_tokens(1)  # ','
+                self.check_advance()  # ','
                 self.compile_expression()
-        self.write_close("expressionList")
 
 
     def is_subroutine_call_second_token(self):
@@ -340,10 +354,13 @@ class CompilationEngine:
 
     def compile_subroutine_call_second_token(self):
         if self.is_dot():
-            self.read_write_tokens(2)  # '.' identifier    
-        self.read_write_tokens(1)  # '('
+            self.input.advance()  # '.'
+        id = self.input.symbol() # identifier
+        self.check_advance()
+        self.check_advance()  # '('
         self.compile_expression_list()
-        self.read_write_tokens(1)  # ')'
+        self.check_advance()  # ')'
+        
 
 
     def compile_subroutine_call(self):
