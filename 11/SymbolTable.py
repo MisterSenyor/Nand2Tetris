@@ -45,12 +45,14 @@ class SymbolTable:
         """
         # Your code goes here!
         print(f"{self.sub_table=}")
+        print(self.curr_scope is self.sub_table)
         if kind in ["STATIC", "FIELD"]:
             self.class_table[name] = [kind, self.class_idx, identifier_type]
             self.class_idx += 1
         else:
             self.sub_table[name] = [kind, self.sub_idx, identifier_type]
             self.sub_idx += 1
+        print(f"{self.sub_table=} (AFTER)")
 
     def var_count(self, kind: str) -> int:
         """

@@ -308,7 +308,7 @@ class CompilationEngine:
 
     def get_segment_index_pair(self, var_name: str):
         kind = self.symbol_table.kind_of(var_name)
-        return kind, self.symbol_table.var_count(kind)
+        return kind, self.symbol_table.index_of(var_name)
 
     def compile_let(self) -> None:
         """Compiles a let statement."""
@@ -316,7 +316,10 @@ class CompilationEngine:
         self.check_advance()  # 'let'
         
         var_name = self.read_tokens(1)  # varName
+        print(f"{var_name=}")
         segment, index = self.get_segment_index_pair(var_name)
+        if segment == "VAR":
+            segment = "local"
         if segment is None or index is None:
             raise ValueError(f"{segment=}, {index=}, {var_name=}")
 
