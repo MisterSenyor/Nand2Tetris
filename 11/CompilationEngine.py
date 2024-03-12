@@ -6,10 +6,12 @@ as allowed by the Creative Common Attribution-NonCommercial-ShareAlike 3.0
 Unported [License](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 """
 import typing
+from SymbolTable import SymbolTable
+from VMWriter import VMWriter
 
 ops = {"+" : "ADD", 
     "-" : "SUB", 
-    "-" : "NEG", 
+    "-" : "NEG",
     "=" : "EQ", 
     ">" : "GT", 
     "<" : "LT", 
@@ -150,20 +152,41 @@ class CompilationEngine:
             self.write_current_token()
             self.check_advance()
     
+    def read_tokens(self, count: int):
+        out = ""
+        for _ in range(count):
+            token_type = self.input.token_type()
+            if token_type == "KEYWORD":
+                text = self.input.keyword()
+            elif token_type == "SYMBOL":
+                text = self.input.symbol()
+            elif token_type == 'IDENTIFIER':
+                text = self.input.identifier()
+            elif token_type == 'INT_CONST':
+                int_val = self.input.int_val()
+                text = str(self.input.int_val())
+            elif token_type == 'STRING_CONST':
+                text = self.input.string_val()
+            out += text
+            self.check_advance()
+
+        return out
+        
+    
     def check_advance(self):
         if self.input.has_more_tokens():
             self.input.advance()
 
     def compile_class(self) -> None:
         self.check_advance()
-        self.write_open("class")
-        self.read_write_tokens(3)  # 'class' className '{'
+        self.read_tokens(1)  # 'class' className '{'
+        class_name = self.read_tokens(1)  # 'class' className '{'
+        self.read_tokens(1)  # 'class' className '{'
         while self.is_class_var_dec():
             self.compile_class_var_dec()
         while self.is_subroutine_dec():
             self.compile_subroutine()
-        self.read_write_tokens(1)  # '}'
-        self.write_close("class")
+        self.read_tokens(1)  # '}'
     
     def get_current_type(self):
         if self.input.token_type() == "KEYWORD":
@@ -174,28 +197,23 @@ class CompilationEngine:
     def compile_class_var_dec(self) -> None:
         """Compiles a static declaration or a field declaration."""
         # Your code goes here!
-        self.write_open("classVarDec")
 
-        kind = self.input.keyword()
-        self.read_write_tokens(1)  # ('static' | 'field')
+        kind = self.read_tokens(1)  # ('static' | 'field')
 
         var_type = self.get_current_type()
-        self.read_write_tokens(1)  # type
+        self.read_tokens(1)  # type
 
-        var_name = self.input.identifier()
-        self.read_write_tokens(1)  # varName
+        var_name = self.read_tokens(1)  # varName
 
         self.symbol_table.define(var_name, var_type, kind)
 
         while self.is_comma():
-            self.read_write_tokens(1)  # ',' 
+            self.read_tokens(1)  # ',' 
 
-            var_name = self.input.identifier()
-            self.read_write_tokens(1)  # varName
+            var_name = self.read_tokens(1)  # varName
 
             self.symbol_table.define(var_name, var_type, kind)
-        self.read_write_tokens(1)  # ;
-        self.write_close("classVarDec")
+        self.read_tokens(1)  # ;
 
 
     def compile_subroutine(self) -> None:
@@ -205,71 +223,58 @@ class CompilationEngine:
         you will understand why this is necessary in project 11.
         """
         # Your code goes here!
-        self.write_open("subroutineDec")
-        self.read_write_tokens(4)  # ('constructor' | 'function' | 'method') ('void' | type) subroutineName '('
+        self.symbol_table.start_subroutine()
+        self.read_tokens(4)  # ('constructor' | 'function' | 'method') ('void' | type) subroutineName '('
         self.compile_parameter_list()
-        self.read_write_tokens(1)  # ')'
+        self.read_tokens(1)  # ')'
         self.compile_subroutine_body()
-        self.write_close("subroutineDec")
     
     def compile_subroutine_body(self) -> None:
-        self.write_open("subroutineBody")
-        self.read_write_tokens(1)  # '{'
+        self.read_tokens(1)  # '{'
         while self.is_var_dec():
             self.compile_var_dec()
         self.compile_statements()
-        self.read_write_tokens(1)  # '}'
-        self.write_close("subroutineBody")
+        self.read_tokens(1)  # '}'
 
     def compile_parameter_list(self) -> None:
         """Compiles a (possibly empty) parameter list, not including the 
         enclosing "()".
         """
         # Your code goes here!
-        self.write_open("parameterList")
         if not self.is_closing_bracket():
             var_type = self.get_current_type()
-            self.read_write_tokens(1)  # type
+            self.read_tokens(1)  # type
 
-            var_name = self.input.identifier()
-            self.read_write_tokens(1)  # varName
+            var_name = self.read_tokens(1)  # varName
 
             self.symbol_table.define(var_name, var_type, 'ARG')
             while self.is_comma():
-                self.read_write_tokens(1)  # ','
-                var_type = self.get_current_type()
-                self.read_write_tokens(1)  # type
+                self.read_tokens(1)  # ','
+                var_type = self.read_tokens(1)  # type
 
-                var_name = self.input.identifier()
-                self.read_write_tokens(1)  # varName
+                var_name = self.read_tokens(1)  # varName
 
                 self.symbol_table.define(var_name, var_type, 'ARG')
-        self.write_close("parameterList")
 
     def compile_var_dec(self) -> None:
         """Compiles a var declaration."""
-        self.write_open("varDec")
-        self.read_write_tokens(1)  # 'var'
+        self.read_tokens(1)  # 'var'
         var_type = self.get_current_type()
-        self.read_write_tokens(1)  # type
-        var_name = self.input.identifier()
-        self.read_write_tokens(1)  # varName
+        self.read_tokens(1)  # type
+        var_name = self.read_tokens(1)  # varName
         self.symbol_table.define(var_name, var_type, 'VAR')
 
         while self.is_comma():
-            self.read_write_tokens(1)  # ','
-            var_name = self.input.identifier()
-            self.read_write_tokens(1)  # varName
+            self.read_tokens(1)  # ','
+            var_name = self.read_tokens(1)  # varName
             self.symbol_table.define(var_name, var_type, 'VAR')
-        self.read_write_tokens(1)  # ';'
-        self.write_close("varDec")
+        self.read_tokens(1)  # ';'
 
     def compile_statements(self) -> None:
         """Compiles a sequence of statements, not including the enclosing 
         "{}".
         """
         # Your code goes here!
-        self.write_open("statements")
         while not self.is_curly_closing_bracket():
             if self.is_let_statement():
                 self.compile_let()
@@ -281,17 +286,14 @@ class CompilationEngine:
                 self.compile_do()
             if self.is_return_statement():
                 self.compile_return()
-        self.write_close("statements")
 
     def compile_do(self) -> None:
         """Compiles a do statement."""
         # Your code goes here!
-        self.write_open("doStatement")
-        self.read_write_tokens(1)  # 'do'
-        self.compile_subroutine_call()
+        self.read_tokens(1)  # 'do'
+        self.compile_expression()
         self.vm_writer.write_pop('TEMP', 0)
-        self.read_write_tokens(1)  # ';'
-        self.write_close("doStatement")
+        self.read_tokens(1)  # ';'
 
     def get_segment_index_pair(self, var_name: str):
         kind = self.symbol_table.kind_of(var_name)
@@ -300,24 +302,24 @@ class CompilationEngine:
     def compile_let(self) -> None:
         """Compiles a let statement."""
         # Your code goes here!
-        self.write_open("letStatement")
-        self.read_write_tokens(1)  # 'let'
+        self.check_advance()  # 'let'
         
-        var_name = self.input.identifier()
+        var_name = self.read_tokens(1)  # varName
         segment, index = self.get_segment_index_pair(var_name)
+        if segment is None or index is None:
+            raise ValueError(f"{segment=}, {index=}, {var_name=}")
         self.vm_writer.write_push(segment, index)
-        self.read_write_tokens(1)  # varName
 
         if self.is_square_opening_bracket():
-            self.read_write_tokens(1)  # '['
+            self.read_tokens(1)  # '['
             self.compile_expression()
-            self.read_write_tokens(1)  # ']'
+            self.read_tokens(1)  # ']'
 
             self.vm_writer.write_arithmetic('ADD')
 
-            self.read_write_tokens(1)  # '='
+            self.read_tokens(1)  # '='
             self.compile_expression()
-            self.read_write_tokens(1)  # ';'
+            self.read_tokens(1)  # ';'
 
             self.vm_writer.write_pop('TEMP', 0)
             self.vm_writer.write_pop('POINTER', 1)
@@ -326,77 +328,70 @@ class CompilationEngine:
         else:
             self.vm_writer.write_pop('POINTER', 1)
 
-            self.read_write_tokens(1)  # '='
+            self.read_tokens(1)  # '='
             self.compile_expression()
-            self.read_write_tokens(1)  # ';'
+            self.read_tokens(1)  # ';'
 
             self.vm_writer.write_pop('THAT', 0)
         
-        self.write_close("letStatement")
         
 
     def compile_while(self) -> None:
         """Compiles a while statement."""
         # Your code goes here!
-        self.write_open("whileStatement")
         loop_label = self.get_new_label()
         end_label = self.get_new_label()
 
         self.vm_writer.write_label(loop_label)
 
-        self.read_write_tokens(2)  # 'while' '('
+        self.read_tokens(2)  # 'while' '('
         self.compile_expression()
         self.vm_writer.write_arithmetic('NOT')
 
         self.vm_writer.write_if(end_label)
 
-        self.read_write_tokens(2)  # ')' '{'
+        self.read_tokens(2)  # ')' '{'
         self.compile_statements()
-        self.read_write_tokens(1)  # '}
+        self.read_tokens(1)  # '}
 
         self.vm_writer.write_goto(loop_label)
         self.vm_writer.write_label(end_label)
-        self.write_close("whileStatement")
 
     def compile_return(self) -> None:
         """Compiles a return statement."""
         # Your code goes here!
-        self.write_open("returnStatement")
-        self.read_write_tokens(1)  # 'return'
+        self.read_tokens(1)  # 'return'
         if not self.is_semicolon():
             self.compile_expression()
         else:
             self.vm_writer.write_push('CONST', 0)
         self.vm_writer.write_return()
-        self.read_write_tokens(1)  # ';'
-        self.write_close("returnStatement")
+        self.read_tokens(1)  # ';'
 
     def compile_if(self) -> None:
         """Compiles a if statement, possibly with a trailing else clause."""
         # Your code goes here!
-        self.write_open("ifStatement")
-        self.read_write_tokens(2)  # 'if' '('
+        self.read_tokens(2)  # 'if' '('
         self.compile_expression()
 
         self.vm_writer.write_arithmeric('NOT')
         else_label = self.get_new_label()
         self.vm_writer.write_if(else_label)
 
-        self.read_write_tokens(2)  # ')' '{'
+        self.read_tokens(2)  # ')' '{'
         self.compile_statements()
-        self.read_write_tokens(1)  # '}'
+        self.read_tokens(1)  # '}'
 
         end_label = self.get_new_label()
         self.vm_writer.write_goto(end_label)
         self.vm_writer.write_label(else_label)
 
         if self.is_else_clause():
-            self.read_write_tokens(2)  # 'else' '{'
+            self.read_tokens(2)  # 'else' '{'
             self.compile_statements()
-            self.read_write_tokens(1)  # '}'
+            self.read_tokens(1)  # '}'
         
         self.vm_writer.write_label(end_label)
-        self.write_close("ifStatement")
 
     def compile_expression(self) -> None:
         """Compiles an expression."""
@@ -407,8 +402,12 @@ class CompilationEngine:
             op = self.input.symbol()
             self.check_advance()
             self.compile_term()
-            self.vm_writer.write_arithmetic(ops[op])
-        self.write_close("expression")
+            if op in ops:
+                self.vm_writer.write_arithmetic(ops[op])
+            elif op == "*":
+                self.vm_writer.write_call("Math.multiply", 2)
+            else:
+                self.vm_writer.write_call("Math.divide", 2)
 
     def compile_term(self) -> None:
         """Compiles a term. 
@@ -421,7 +420,6 @@ class CompilationEngine:
         part of this term and should not be advanced over.
         """
         # Your code goes here!
-        self.write_open("term")
         if self.is_unary_op():
             op = self.input.symbol()
             self.check_advance()
@@ -438,22 +436,30 @@ class CompilationEngine:
                 self.check_advance()  # '['
                 self.compile_expression()
                 self.check_advance()  # ']'
-                self.vm_writer.write_push(self.get_segment_index_pair(id))
+                self.vm_writer.write_push(*self.get_segment_index_pair(id))
                 self.vm_writer.write_arithmetic("ADD")
             elif self.is_subroutine_call_second_token():
-                self.compile_subroutine_call_second_token()
+                if self.is_dot():
+                    self.input.advance()  # '.'
+                    id +=  '.' + self.input.symbol() # identifier
+                n_args = self.compile_subroutine_call_second_token()
+                self.vm_writer.write_call(id, n_args)
         else:
-            self.read_write_tokens(1)  # constant (int or string or keyword)
-        self.write_close("term")
+            self.vm_writer.write_push("CONST", self.input.symbol())  # constant (int or string or keyword)
+            self.check_advance()
 
     def compile_expression_list(self) -> None:
         """Compiles a (possibly empty) comma-separated list of expressions."""
         # Your code goes here!
         if not self.is_closing_bracket():
             self.compile_expression()
+            count = 1
             while self.is_comma():
                 self.check_advance()  # ','
+                count += 1
                 self.compile_expression()
+                
+            return count
 
 
     def is_subroutine_call_second_token(self):
@@ -461,17 +467,11 @@ class CompilationEngine:
 
 
     def compile_subroutine_call_second_token(self):
-        if self.is_dot():
-            self.input.advance()  # '.'
-        id = self.input.symbol() # identifier
         self.check_advance()
         self.check_advance()  # '('
-        self.compile_expression_list()
+        n_args = self.compile_expression_list()
         self.check_advance()  # ')'
         
+        return n_args
+        
 
-
-    def compile_subroutine_call(self):
-        # no open & closing brackets!
-        self.read_write_tokens(1)  # identifier
-        self.compile_subroutine_call_second_token()

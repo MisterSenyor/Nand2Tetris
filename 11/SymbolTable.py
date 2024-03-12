@@ -44,6 +44,7 @@ class SymbolTable:
             "STATIC", "FIELD", "ARG", "VAR".
         """
         # Your code goes here!
+        print(f"{self.sub_table=}")
         if kind in ["STATIC", "FIELD"]:
             self.class_table[name] = [kind, self.class_idx, identifier_type]
             self.class_idx += 1
