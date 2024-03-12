@@ -8,6 +8,8 @@ Unported [License](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 import typing
 
 
+
+
 class CompilationEngine:
     """Gets input from a JackTokenizer and emits its parsed structure into an
     output stream.
@@ -28,6 +30,12 @@ class CompilationEngine:
         self.indent_count = 0
         self.symbol_table = symbol_table
         self.vm_writer = vm_writer
+        self.label_count = 0
+    
+    def get_new_label(self):
+        label = 'label' + str(self.label_count)
+        self.label_count += 1
+        return label
 
     def is_class_var_dec(self):
         return self.input.token_type() == "KEYWORD" and self.input.keyword() in ["STATIC", "FIELD"]
@@ -145,14 +153,36 @@ class CompilationEngine:
             self.compile_subroutine()
         self.read_write_tokens(1)  # '}'
         self.write_close("class")
+    
+    def get_current_type(self):
+        if self.input.token_type() == "KEYWORD":
+            return self.input.keyword()
+        else:
+            return self.input.identifier()
 
     def compile_class_var_dec(self) -> None:
         """Compiles a static declaration or a field declaration."""
         # Your code goes here!
         self.write_open("classVarDec")
-        self.read_write_tokens(3)  # ('static' | 'field') type varName
+
+        kind = self.input.keyword()
+        self.read_write_tokens(1)  # ('static' | 'field')
+
+        var_type = self.get_current_type()
+        self.read_write_tokens(1)  # type
+
+        var_name = self.input.identifier()
+        self.read_write_tokens(1)  # varName
+
+        self.symbol_table.define(var_name, var_type, kind)
+
         while self.is_comma():
-            self.read_write_tokens(2)  # ',' varName
+            self.read_write_tokens(1)  # ',' 
+
+            var_name = self.input.identifier()
+            self.read_write_tokens(1)  # varName
+
+            self.symbol_table.define(var_name, var_type, kind)
         self.read_write_tokens(1)  # ;
         self.write_close("classVarDec")
 
@@ -187,17 +217,39 @@ class CompilationEngine:
         # Your code goes here!
         self.write_open("parameterList")
         if not self.is_closing_bracket():
-            self.read_write_tokens(2)  # type varName
+            var_type = self.get_current_type()
+            self.read_write_tokens(1)  # type
+
+            var_name = self.input.identifier()
+            self.read_write_tokens(1)  # varName
+
+            self.symbol_table.define(var_name, var_type, 'ARG')
             while self.is_comma():
-                self.read_write_tokens(3)  # ',' type varName
+                self.read_write_tokens(1)  # ','
+                var_type = self.get_current_type()
+                self.read_write_tokens(1)  # type
+
+                var_name = self.input.identifier()
+                self.read_write_tokens(1)  # varName
+
+                self.symbol_table.define(var_name, var_type, 'ARG')
         self.write_close("parameterList")
 
     def compile_var_dec(self) -> None:
         """Compiles a var declaration."""
         self.write_open("varDec")
-        self.read_write_tokens(3)  # 'var' type varName
+        self.read_write_tokens(1)  # 'var'
+        var_type = self.get_current_type()
+        self.read_write_tokens(1)  # type
+        var_name = self.input.identifier()
+        self.read_write_tokens(1)  # varName
+        self.symbol_table.define(var_name, var_type, 'VAR')
+
         while self.is_comma():
-            self.read_write_tokens(2)  # ',' varName
+            self.read_write_tokens(1)  # ','
+            var_name = self.input.identifier()
+            self.read_write_tokens(1)  # varName
+            self.symbol_table.define(var_name, var_type, 'VAR')
         self.read_write_tokens(1)  # ';'
         self.write_close("varDec")
 
@@ -226,32 +278,73 @@ class CompilationEngine:
         self.write_open("doStatement")
         self.read_write_tokens(1)  # 'do'
         self.compile_subroutine_call()
+        self.vm_writer.write_pop('TEMP', 0)
         self.read_write_tokens(1)  # ';'
         self.write_close("doStatement")
+
+    def get_segment_index_pair(self, var_name: str):
+        kind = self.symbol_table.kind_of(var_name)
+        return kind, self.symbol_table.var_count(kind)
 
     def compile_let(self) -> None:
         """Compiles a let statement."""
         # Your code goes here!
         self.write_open("letStatement")
-        self.read_write_tokens(2)  # 'let' varName
+        self.read_write_tokens(1)  # 'let'
+        
+        var_name = self.input.identifier()
+        segment, index = self.get_segment_index_pair(var_name)
+        self.vm_writer.write_push(segment, index)
+        self.read_write_tokens(1)  # varName
+
         if self.is_square_opening_bracket():
             self.read_write_tokens(1)  # '['
             self.compile_expression()
             self.read_write_tokens(1)  # ']'
-        self.read_write_tokens(1)  # '='
-        self.compile_expression()
-        self.read_write_tokens(1)  # ';'
+
+            self.vm_writer.write_arithmetic('ADD')
+
+            self.read_write_tokens(1)  # '='
+            self.compile_expression()
+            self.read_write_tokens(1)  # ';'
+
+            self.vm_writer.write_pop('TEMP', 0)
+            self.vm_writer.write_pop('POINTER', 1)
+            self.vm_writer.write_push('TEMP', 0)
+            self.vm_writer.write_pop('THAT', 0)
+        else:
+            self.vm_writer.write_pop('POINTER', 1)
+
+            self.read_write_tokens(1)  # '='
+            self.compile_expression()
+            self.read_write_tokens(1)  # ';'
+
+            self.vm_writer.write_pop('THAT', 0)
+        
         self.write_close("letStatement")
+        
 
     def compile_while(self) -> None:
         """Compiles a while statement."""
         # Your code goes here!
         self.write_open("whileStatement")
+        loop_label = self.get_new_label()
+        end_label = self.get_new_label()
+
+        self.vm_writer.write_label(loop_label)
+
         self.read_write_tokens(2)  # 'while' '('
         self.compile_expression()
+        self.vm_writer.write_arithmetic('NOT')
+
+        self.vm_writer.write_if(end_label)
+
         self.read_write_tokens(2)  # ')' '{'
         self.compile_statements()
         self.read_write_tokens(1)  # '}
+
+        self.vm_writer.write_goto(loop_label)
+        self.vm_writer.write_label(end_label)
         self.write_close("whileStatement")
 
     def compile_return(self) -> None:
@@ -261,6 +354,9 @@ class CompilationEngine:
         self.read_write_tokens(1)  # 'return'
         if not self.is_semicolon():
             self.compile_expression()
+        else:
+            self.vm_writer.write_push('CONST', 0)
+        self.vm_writer.write_return()
         self.read_write_tokens(1)  # ';'
         self.write_close("returnStatement")
 
@@ -270,13 +366,25 @@ class CompilationEngine:
         self.write_open("ifStatement")
         self.read_write_tokens(2)  # 'if' '('
         self.compile_expression()
+
+        self.vm_writer.write_arithmeric('NOT')
+        else_label = self.get_new_label()
+        self.vm_writer.write_if(else_label)
+
         self.read_write_tokens(2)  # ')' '{'
         self.compile_statements()
         self.read_write_tokens(1)  # '}'
+
+        end_label = self.get_new_label()
+        self.vm_writer.write_goto(end_label)
+        self.vm_writer.write_label(else_label)
+
         if self.is_else_clause():
             self.read_write_tokens(2)  # 'else' '{'
             self.compile_statements()
             self.read_write_tokens(1)  # '}'
+        
+        self.vm_writer.write_label(end_label)
         self.write_close("ifStatement")
 
     def compile_expression(self) -> None:
