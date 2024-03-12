@@ -110,6 +110,9 @@ class CompilationEngine:
 
     def is_identifier(self):
         return self.input.token_type() == "IDENTIFIER"
+    
+    def is_string(self):
+        return self.input.token_type() == "STRING_CONST"
 
     def write_line(self, xml_header, xml_content):
         self.output.write(self.indent_count * '  ' + f"<{xml_header}> {xml_content} </{xml_header}>\n")
@@ -382,7 +385,7 @@ class CompilationEngine:
         self.read_tokens(2)  # 'if' '('
         self.compile_expression()
 
-        self.vm_writer.write_arithmeric('NOT')
+        self.vm_writer.write_arithmetic('NOT')
         else_label = self.get_new_label()
         self.vm_writer.write_if(else_label)
 
