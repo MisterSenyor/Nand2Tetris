@@ -44,6 +44,7 @@ class CompilationEngine:
         self.symbol_table = symbol_table
         self.vm_writer = vm_writer
         self.label_count = 0
+        self.class_name = ''
     
     def get_new_label(self):
         label = 'label' + str(self.label_count)
@@ -179,9 +180,9 @@ class CompilationEngine:
 
     def compile_class(self) -> None:
         self.check_advance()
-        self.read_tokens(1)  # 'class' className '{'
-        class_name = self.read_tokens(1)  # 'class' className '{'
-        self.read_tokens(1)  # 'class' className '{'
+        self.read_tokens(1)  # 'class'
+        self.class_name = self.read_tokens(1)  # className
+        self.read_tokens(1)  # '{'
         while self.is_class_var_dec():
             self.compile_class_var_dec()
         while self.is_subroutine_dec():
@@ -224,15 +225,22 @@ class CompilationEngine:
         """
         # Your code goes here!
         self.symbol_table.start_subroutine()
-        self.read_tokens(4)  # ('constructor' | 'function' | 'method') ('void' | type) subroutineName '('
+        subroutine_type = self.read_tokens(1)  # ('constructor' | 'function' | 'method')
+        self.read_tokens(1)  # ('void' | type)
+        subroutine_name = self.read_tokens(1)  # subroutineName 
+        self.read_tokens(1)  # '('
+
         self.compile_parameter_list()
         self.read_tokens(1)  # ')'
-        self.compile_subroutine_body()
-    
-    def compile_subroutine_body(self) -> None:
+
+        num_locals = 0
         self.read_tokens(1)  # '{'
         while self.is_var_dec():
+            num_locals += 1
             self.compile_var_dec()
+
+        self.vm_writer.write_function(self.class_name + '.' + subroutine_name, num_locals)
+
         self.compile_statements()
         self.read_tokens(1)  # '}'
 
