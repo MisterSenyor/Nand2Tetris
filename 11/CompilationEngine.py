@@ -444,6 +444,14 @@ class CompilationEngine:
                     id +=  '.' + self.input.symbol() # identifier
                 n_args = self.compile_subroutine_call_second_token()
                 self.vm_writer.write_call(id, n_args)
+        elif self.is_string():
+            string = self.input.symbol()[1:-1]
+            self.vm_writer.write_push(len(string))
+            self.vm_writer.write_call("String.new", 1)
+            for char in string:
+                self.vm_writer.write_push("CONST", int(char))
+                self.vm_writer.write_call("String.appendChar", 2)
+            self.check_advance()
         else:
             self.vm_writer.write_push("CONST", self.input.symbol())  # constant (int or string or keyword)
             self.check_advance()
