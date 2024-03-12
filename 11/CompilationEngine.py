@@ -316,9 +316,10 @@ class CompilationEngine:
         segment, index = self.get_segment_index_pair(var_name)
         if segment is None or index is None:
             raise ValueError(f"{segment=}, {index=}, {var_name=}")
-        self.vm_writer.write_push(segment, index)
 
         if self.is_square_opening_bracket():
+            self.vm_writer.write_push(segment, index)
+
             self.read_tokens(1)  # '['
             self.compile_expression()
             self.read_tokens(1)  # ']'
@@ -334,13 +335,11 @@ class CompilationEngine:
             self.vm_writer.write_push('TEMP', 0)
             self.vm_writer.write_pop('THAT', 0)
         else:
-            self.vm_writer.write_pop('POINTER', 1)
-
             self.read_tokens(1)  # '='
             self.compile_expression()
             self.read_tokens(1)  # ';'
 
-            self.vm_writer.write_pop('THAT', 0)
+            self.vm_writer.write_pop(segment, index)
         
         
 
