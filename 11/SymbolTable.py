@@ -58,9 +58,12 @@ class SymbolTable:
             the current scope.
         """
         # Your code goes here!
+        scope = self.class_table
+        if kind in ["ARG", "VAR"]:
+            scope = self.sub_table
         c = 0
-        for var in self.curr_scope:
-            if self.curr_scope[var][0] == kind:
+        for var in scope:
+            if scope[var][0] == kind:
                 c += 1
         
         return c

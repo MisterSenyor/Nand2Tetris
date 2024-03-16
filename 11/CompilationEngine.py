@@ -11,7 +11,6 @@ from VMWriter import VMWriter
 
 ops = {"+" : "ADD", 
     "-" : "SUB", 
-    "-" : "NEG",
     "=" : "EQ", 
     ">" : "GT", 
     "<" : "LT", 
@@ -109,7 +108,7 @@ class CompilationEngine:
         return self.input.token_type() == "SYMBOL" and self.input.symbol() in '-~^#'
 
     def is_identifier(self):
-        return self.input.token_type() == "IDENTIFIER"
+        return self.input.token_type() == "IDENTIFIER" or self.input.symbol() == "this"
     
     def is_string(self):
         return self.input.token_type() == "STRING_CONST"
@@ -252,9 +251,9 @@ class CompilationEngine:
         if subroutine_type == "METHOD":
             self.vm_writer.write_push("ARG", 0)
             self.vm_writer.write_pop("POINTER", 0)
-            self.symbol_table.define("this", self.class_name, "ARG")
+            self.symbol_table.define("this", self.class_name, "POINTER")
         elif subroutine_type == "CONSTRUCTOR":
-            self.symbol_table.define("this", self.class_name, "ARG")
+            self.symbol_table.define("this", self.class_name, "POINTER")
             self.vm_writer.write_push("CONST", self.symbol_table.var_count("FIELD"))
             self.vm_writer.write_call("Memory.alloc", 1)
             self.vm_writer.write_pop("POINTER", 0)
@@ -344,11 +343,12 @@ class CompilationEngine:
             raise ValueError(f"{segment=}, {index=}, {var_name=}")
 
         if self.is_square_opening_bracket():
-            self.vm_writer.write_push(segment, index)
 
             self.read_tokens(1)  # '['
             self.compile_expression()
             self.read_tokens(1)  # ']'
+            
+            self.vm_writer.write_push(segment, index)
 
             self.vm_writer.write_arithmetic('ADD')
 
@@ -455,9 +455,13 @@ class CompilationEngine:
         # Your code goes here!
         if self.is_unary_op():
             op = self.input.symbol()
+            if op == "-":
+                op = "NEG"
+            else:
+                op = ops[op]
             self.check_advance()
             self.compile_term()
-            self.vm_writer.write_arithmetic(ops[op])
+            self.vm_writer.write_arithmetic(op)
         elif self.is_opening_bracket():
             self.check_advance()  # '('
             self.compile_expression()
@@ -494,10 +498,10 @@ class CompilationEngine:
                 self.vm_writer.write_push(*self.get_segment_index_pair(id))
         elif self.is_string():
             string = self.input.symbol()[1:-1]
-            self.vm_writer.write_push(len(string))
+            self.vm_writer.write_push("CONST", len(string))
             self.vm_writer.write_call("String.new", 1)
             for char in string:
-                self.vm_writer.write_push("CONST", int(char))
+                self.vm_writer.write_push("CONST", ord(char))
                 self.vm_writer.write_call("String.appendChar", 2)
             self.check_advance()
         elif self.input.token_type() == "BOOL_CONST":
@@ -508,7 +512,7 @@ class CompilationEngine:
                 self.vm_writer.write_push("CONST", "0")
             self.check_advance()
         else:
-            self.vm_writer.write_push("CONST", self.input.symbol())  # constant (int or string or keyword)
+            self.vm_writer.write_push("CONST", self.input.symbol() if self.input.symbol().lower() != "null" else "0")  # constant (int or string or keyword)
             self.check_advance()
 
     def compile_expression_list(self) -> None:
