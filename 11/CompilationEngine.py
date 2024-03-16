@@ -235,15 +235,6 @@ class CompilationEngine:
         subroutine_name = self.read_tokens(1)  # subroutineName 
 
 
-        if subroutine_type == "method":
-            self.vm_writer.write_push("ARG", 0)
-            self.vm_writer.write_pop("POINTER", 0)
-            self.symbol_table.define("this", self.class_name, "ARG")
-        elif subroutine_type == "constructor":
-            self.symbol_table.define("this", self.class_name, "ARG")
-            self.vm_writer.write_push("CONST", self.symbol_table.var_count("FIELD"))
-            self.vm_writer.write_call("Memory.alloc", 1)
-            self.vm_writer.write_pop("POINTER", 0)
 
 
         self.read_tokens(1)  # '('
@@ -257,6 +248,16 @@ class CompilationEngine:
             num_locals += self.compile_var_dec()
 
         self.vm_writer.write_function(self.class_name + '.' + subroutine_name, num_locals)
+        
+        if subroutine_type == "METHOD":
+            self.vm_writer.write_push("ARG", 0)
+            self.vm_writer.write_pop("POINTER", 0)
+            self.symbol_table.define("this", self.class_name, "ARG")
+        elif subroutine_type == "CONSTRUCTOR":
+            self.symbol_table.define("this", self.class_name, "ARG")
+            self.vm_writer.write_push("CONST", self.symbol_table.var_count("FIELD"))
+            self.vm_writer.write_call("Memory.alloc", 1)
+            self.vm_writer.write_pop("POINTER", 0)
 
         self.compile_statements()
         self.read_tokens(1)  # '}'

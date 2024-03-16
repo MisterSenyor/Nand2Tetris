@@ -36,6 +36,8 @@ class VMWriter:
             segment = "argument"
         if segment == "var":
             segment = "local"
+        if segment == "field":
+            segment = "this"
         
         self.output.write(f"push {segment} {index}\n")
 
@@ -53,6 +55,10 @@ class VMWriter:
             segment = "constant"
         if segment == "arg":
             segment = "argument"
+        if segment == "var":
+            segment = "local"
+        if segment == "field":
+            segment = "this"
         
         self.output.write(f"pop {segment} {index}\n")
 
