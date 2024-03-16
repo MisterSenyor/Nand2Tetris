@@ -233,14 +233,23 @@ class CompilationEngine:
         subroutine_type = self.read_tokens(1)  # ('constructor' | 'function' | 'method')
         self.read_tokens(1)  # ('void' | type)
         subroutine_name = self.read_tokens(1)  # subroutineName 
+
+
+        if subroutine_type == "method":
+            self.vm_writer.write_push("ARG", 0)
+            self.vm_writer.write_pop("POINTER", 0)
+            self.symbol_table.define("this", self.class_name, "ARG")
+        elif subroutine_type == "constructor":
+            self.symbol_table.define("this", self.class_name, "ARG")
+            self.vm_writer.write_push("CONST", self.symbol_table.var_count("FIELD"))
+            self.vm_writer.write_call("Memory.alloc", 1)
+            self.vm_writer.write_pop("POINTER", 0)
+
+
         self.read_tokens(1)  # '('
 
         self.compile_parameter_list()
         self.read_tokens(1)  # ')'
-        
-        if subroutine_type == "method":
-            self.vm_writer.write_push("ARG", 0)
-            self.vm_writer.write_pop("POINTER", 0)
 
         num_locals = 0
         self.read_tokens(1)  # '{'
