@@ -199,7 +199,9 @@ class JackTokenizer:
             "KEYWORD", "SYMBOL", "IDENTIFIER", "INT_CONST", "STRING_CONST"
         """
         # Your code goes here!
-        if self.token[0] == '"':
+        if self.token == "true" or self.token == "false":
+            return "BOOL_CONST"
+        elif self.token[0] == '"':
             return "STRING_CONST"
         elif self.token[0].isdigit():
             return "INT_CONST"

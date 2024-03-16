@@ -19,7 +19,6 @@ class SymbolTable:
         # Your code goes here!
         self.class_table = {}
         self.sub_table = {}
-        self.class_idx, self.sub_idx = 0, 0
         self.curr_scope = self.class_table
         
 
@@ -46,12 +45,7 @@ class SymbolTable:
         # Your code goes here!
         print(f"{self.sub_table=}")
         print(self.curr_scope is self.sub_table)
-        if kind in ["STATIC", "FIELD"]:
-            self.class_table[name] = [kind, self.class_idx, identifier_type]
-            self.class_idx += 1
-        else:
-            self.sub_table[name] = [kind, self.sub_idx, identifier_type]
-            self.sub_idx += 1
+        self.curr_scope[name] = [kind, self.var_count(kind), identifier_type]
         print(f"{self.sub_table=} (AFTER)")
 
     def var_count(self, kind: str) -> int:

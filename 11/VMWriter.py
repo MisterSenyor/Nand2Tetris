@@ -29,8 +29,13 @@ class VMWriter:
             index (int): the index to push to.
         """
         # Your code goes here!
-        seg = segment.lower() if segment != "CONST" else "constant"
-        self.output.write(f"push {seg} {index}\n")
+        segment = segment.lower()
+        if segment == "const":
+            segment = "constant"
+        if segment == "arg":
+            segment = "argument"
+        
+        self.output.write(f"push {segment} {index}\n")
 
     def write_pop(self, segment: str, index: int) -> None:
         """Writes a VM pop command.
@@ -41,8 +46,13 @@ class VMWriter:
             index (int): the index to pop from.
         """
         # Your code goes here!
-        seg = segment.lower() if segment != "CONST" else "constant"
-        self.output.write(f"pop {seg} {index}\n")
+        segment = segment.lower()
+        if segment == "const":
+            segment = "constant"
+        if segment == "arg":
+            segment = "argument"
+        
+        self.output.write(f"pop {segment} {index}\n")
 
     def write_arithmetic(self, command: str) -> None:
         """Writes a VM arithmetic command.

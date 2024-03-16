@@ -171,6 +171,8 @@ class CompilationEngine:
                 text = str(self.input.int_val())
             elif token_type == 'STRING_CONST':
                 text = self.input.string_val()
+            else:
+                text = self.input.symbol()
             out += text
             self.check_advance()
 
@@ -235,12 +237,15 @@ class CompilationEngine:
 
         self.compile_parameter_list()
         self.read_tokens(1)  # ')'
+        
+        if subroutine_type == "method":
+            self.vm_writer.write_push("ARG", 0)
+            self.vm_writer.write_pop("POINTER", 0)
 
         num_locals = 0
         self.read_tokens(1)  # '{'
         while self.is_var_dec():
-            num_locals += 1
-            self.compile_var_dec()
+            num_locals += self.compile_var_dec()
 
         self.vm_writer.write_function(self.class_name + '.' + subroutine_name, num_locals)
 
@@ -269,6 +274,7 @@ class CompilationEngine:
 
     def compile_var_dec(self) -> None:
         """Compiles a var declaration."""
+        n_vars = 1
         self.read_tokens(1)  # 'var'
         var_type = self.get_current_type()
         self.read_tokens(1)  # type
@@ -276,10 +282,13 @@ class CompilationEngine:
         self.symbol_table.define(var_name, var_type, 'VAR')
 
         while self.is_comma():
+            n_vars += 1
             self.read_tokens(1)  # ','
             var_name = self.read_tokens(1)  # varName
             self.symbol_table.define(var_name, var_type, 'VAR')
         self.read_tokens(1)  # ';'
+        
+        return n_vars
 
     def compile_statements(self) -> None:
         """Compiles a sequence of statements, not including the enclosing 
@@ -307,8 +316,11 @@ class CompilationEngine:
         self.read_tokens(1)  # ';'
 
     def get_segment_index_pair(self, var_name: str):
-        kind = self.symbol_table.kind_of(var_name)
-        return kind, self.symbol_table.index_of(var_name)
+        
+        segment = self.symbol_table.kind_of(var_name)
+        if segment == "VAR":
+            segment = "local"
+        return segment, self.symbol_table.index_of(var_name)
 
     def compile_let(self) -> None:
         """Compiles a let statement."""
@@ -318,8 +330,6 @@ class CompilationEngine:
         var_name = self.read_tokens(1)  # varName
         print(f"{var_name=}")
         segment, index = self.get_segment_index_pair(var_name)
-        if segment == "VAR":
-            segment = "local"
         if segment is None or index is None:
             raise ValueError(f"{segment=}, {index=}, {var_name=}")
 
@@ -451,12 +461,16 @@ class CompilationEngine:
                 self.check_advance()  # ']'
                 self.vm_writer.write_push(*self.get_segment_index_pair(id))
                 self.vm_writer.write_arithmetic("ADD")
+                self.vm_writer.write_pop("POINTER", 1)
+                self.vm_writer.write_push("THAT", 0)
             elif self.is_subroutine_call_second_token():
                 if self.is_dot():
                     self.input.advance()  # '.'
                     id +=  '.' + self.input.symbol() # identifier
                 n_args = self.compile_subroutine_call_second_token()
                 self.vm_writer.write_call(id, n_args)
+            else:
+                self.vm_writer.write_push(*self.get_segment_index_pair(id))
         elif self.is_string():
             string = self.input.symbol()[1:-1]
             self.vm_writer.write_push(len(string))
@@ -464,6 +478,13 @@ class CompilationEngine:
             for char in string:
                 self.vm_writer.write_push("CONST", int(char))
                 self.vm_writer.write_call("String.appendChar", 2)
+            self.check_advance()
+        elif self.input.token_type() == "BOOL_CONST":
+            if self.input.symbol() == "true":
+                self.vm_writer.write_push("CONST", "0")
+                self.vm_writer.write_arithmetic("NOT")
+            else:
+                self.vm_writer.write_push("CONST", "0")
             self.check_advance()
         else:
             self.vm_writer.write_push("CONST", self.input.symbol())  # constant (int or string or keyword)
