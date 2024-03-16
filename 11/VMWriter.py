@@ -34,6 +34,8 @@ class VMWriter:
             segment = "constant"
         if segment == "arg":
             segment = "argument"
+        if segment == "var":
+            segment = "local"
         
         self.output.write(f"push {segment} {index}\n")
 

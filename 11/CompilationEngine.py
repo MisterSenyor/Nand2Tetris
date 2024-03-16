@@ -474,14 +474,19 @@ class CompilationEngine:
                 self.vm_writer.write_push("THAT", 0)
             elif self.is_subroutine_call_second_token():
                 n_args = 0
-                if id in self.symbol_table.curr_scope.keys():
-                    var_data = self.symbol_table.curr_scope[id]
-                    id = var_data[2]
+                if id in self.symbol_table.sub_table or id in self.symbol_table.class_table:
+                    tmp = id
+                    id = self.symbol_table.type_of(id)
                     n_args += 1
-                    self.vm_writer.write_push(var_data[0], var_data[1])
+                    self.vm_writer.write_push(self.symbol_table.kind_of(tmp), self.symbol_table.index_of(tmp))
                 if self.is_dot():
-                    self.input.advance()  # '.'
+                    self.check_advance()  # '.'
                     id +=  '.' + self.input.symbol() # identifier
+                    self.check_advance() # get to (
+                else:
+                    id = self.class_name + '.' + id
+                    n_args += 1
+                    self.vm_writer.write_push("POINTER", 0)
                 n_args += self.compile_subroutine_call_second_token()
                 self.vm_writer.write_call(id, n_args)
             else:
@@ -517,6 +522,7 @@ class CompilationEngine:
                 self.compile_expression()
                 
             return count
+        return 0
 
 
     def is_subroutine_call_second_token(self):
@@ -524,7 +530,6 @@ class CompilationEngine:
 
 
     def compile_subroutine_call_second_token(self):
-        self.check_advance()
         self.check_advance()  # '('
         n_args = self.compile_expression_list()
         self.check_advance()  # ')'
