@@ -464,10 +464,16 @@ class CompilationEngine:
                 self.vm_writer.write_pop("POINTER", 1)
                 self.vm_writer.write_push("THAT", 0)
             elif self.is_subroutine_call_second_token():
+                n_args = 0
+                if id in self.symbol_table.curr_scope.keys():
+                    var_data = self.symbol_table.curr_scope[id]
+                    id = var_data[2]
+                    n_args += 1
+                    self.vm_writer.write_push(var_data[0], var_data[1])
                 if self.is_dot():
                     self.input.advance()  # '.'
                     id +=  '.' + self.input.symbol() # identifier
-                n_args = self.compile_subroutine_call_second_token()
+                n_args += self.compile_subroutine_call_second_token()
                 self.vm_writer.write_call(id, n_args)
             else:
                 self.vm_writer.write_push(*self.get_segment_index_pair(id))

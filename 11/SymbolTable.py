@@ -75,7 +75,9 @@ class SymbolTable:
             if the identifier is unknown in the current scope.
         """
         # Your code goes here!
-        return self.curr_scope[name][0] if name in self.curr_scope else None
+        if self.curr_scope is not self.sub_table:
+            self.sub_table = {}
+        return self.sub_table[name][0] if name in self.sub_table else self.class_table[name][0]
     
     def type_of(self, name: str) -> str:
         """
@@ -86,7 +88,9 @@ class SymbolTable:
             str: the type of the named identifier in the current scope.
         """
         # Your code goes here!
-        return self.curr_scope[name][2] if name in self.curr_scope else None
+        if self.curr_scope is not self.sub_table:
+            self.sub_table = {}
+        return self.sub_table[name][2] if name in self.sub_table else self.class_table[name][2]
         
 
     def index_of(self, name: str) -> int:
@@ -98,4 +102,6 @@ class SymbolTable:
             int: the index assigned to the named identifier.
         """
         # Your code goes here!
-        return self.curr_scope[name][1] if name in self.curr_scope else None
+        if self.curr_scope is not self.sub_table:
+            self.sub_table = {}
+        return self.sub_table[name][1] if name in self.sub_table else self.class_table[name][1]
